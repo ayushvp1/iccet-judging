@@ -275,70 +275,44 @@ export default function HomePage() {
     alert("✅ All scores have been cleared successfully.");
   };
 
-  const handleExportCSV = () => {
-    if (scoreRecords.length === 0) {
-      alert("No scores to export.");
-      return;
-    }
-
-    // Build CSV content
-    const headers = [
-      "Participant ID",
-      "Participant Name",
-      "Paper Title",
-      "Judge",
-      "Section",
-      ...currentCriteria.map((c) => c.label),
-      "Total Score",
-      "Submitted At",
-    ];
-
-    const rows = scoreRecords.map((record) => {
-      const participant = PARTICIPANTS.find((p) => p.id === record.participantId);
-      const criteria =
-        record.section === "Best Paper"
-          ? BEST_PAPER_CRITERIA
-          : YOUNG_RESEARCHER_CRITERIA;
-
-      return [
-        record.participantId,
-        participant?.name || "Unknown",
-        participant?.title || "Unknown",
-        record.judge,
-        record.section,
-        ...criteria.map((c) => record.scores[c.id] || 0),
-        record.total,
-        new Date(record.createdAt).toLocaleString(),
-      ];
-    });
-
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
-      ),
-    ].join("\n");
-
-    // Download
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `ICCIET_2025_Scores_${new Date().toISOString().split("T")[0]}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   const handleExportXLSX = () => {
     if (scoreRecords.length === 0) {
       alert("No scores to export.");
       return;
     }
 
-    // Build worksheet data
-    const headers = [
+    // Calculate rankings for both sections
+    const calculateRankings = (section: Section) => {
+      const perParticipant: Record<string, { totalSum: number; count: number }> = {};
+
+      for (const record of scoreRecords) {
+        if (record.section !== section) continue;
+        if (!perParticipant[record.participantId]) {
+          perParticipant[record.participantId] = { totalSum: 0, count: 0 };
+        }
+        perParticipant[record.participantId].totalSum += record.total;
+        perParticipant[record.participantId].count += 1;
+      }
+
+      return Object.entries(perParticipant)
+        .map(([participantId, { totalSum, count }]) => {
+          const participant = PARTICIPANTS.find((p) => p.id === participantId);
+          if (!participant) return null;
+          return {
+            participant,
+            avgScore: totalSum / count,
+            judgeCount: count,
+          };
+        })
+        .filter((row): row is { participant: Participant; avgScore: number; judgeCount: number } => row !== null)
+        .sort((a, b) => b.avgScore - a.avgScore);
+    };
+
+    const bestPaperRankings = calculateRankings("Best Paper");
+    const youngResearcherRankings = calculateRankings("Young Researcher");
+
+    // Build worksheet data with scores
+    const scoresHeaders = [
       "Participant ID",
       "Participant Name",
       "Paper Title",
@@ -349,7 +323,7 @@ export default function HomePage() {
       "Submitted At",
     ];
 
-    const rows = scoreRecords.map((record) => {
+    const scoresRows = scoreRecords.map((record) => {
       const participant = PARTICIPANTS.find((p) => p.id === record.participantId);
       const criteria =
         record.section === "Best Paper"
@@ -368,35 +342,76 @@ export default function HomePage() {
       ];
     });
 
-    // Create simple XLSX format (XML-based) with colors
-    const worksheet = [headers, ...rows];
-    
-    // Convert to HTML table for Excel with styling
+    // Convert to HTML with multiple tables for Excel
     let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
     html += '<head><meta charset="utf-8"/>';
     html += '<style>';
-    html += 'table { border-collapse: collapse; width: 100%; }';
+    html += 'body { font-family: Arial, sans-serif; }';
+    html += 'h2 { color: #175676; margin-top: 30px; margin-bottom: 10px; }';
+    html += 'table { border-collapse: collapse; width: 100%; margin-bottom: 30px; }';
     html += 'th { background-color: #175676; color: white; font-weight: bold; padding: 10px; border: 1px solid #ddd; text-align: left; }';
     html += 'td { padding: 8px; border: 1px solid #ddd; }';
     html += 'tr:nth-child(even) { background-color: #f9f9f9; }';
-    html += 'tr:hover { background-color: #f0f0f0; }';
+    html += '.rank-1 { background-color: #ffd700; font-weight: bold; }';
+    html += '.rank-2 { background-color: #c0c0c0; font-weight: bold; }';
+    html += '.rank-3 { background-color: #cd7f32; font-weight: bold; }';
     html += '.participant-id { background-color: #e3f2fd; font-weight: bold; }';
     html += '.participant-name { background-color: #fff3e0; }';
     html += '.judge { background-color: #f3e5f5; }';
     html += '.section { background-color: #e8f5e9; font-weight: bold; }';
     html += '.score { background-color: #fff9c4; text-align: center; }';
     html += '.total { background-color: #ffccbc; font-weight: bold; text-align: center; }';
+    html += '.winner { background-color: #ffd700; font-weight: bold; font-size: 14px; }';
     html += '</style>';
-    html += '</head><body><table>';
+    html += '</head><body>';
+
+    // Add Rankings Section
+    html += '<h2>ICCIET 2025 - FINAL RANKINGS</h2>';
     
-    worksheet.forEach((row, idx) => {
+    // Best Paper Rankings
+    html += '<h3>Best Paper Award - Rankings</h3>';
+    html += '<table>';
+    html += '<tr><th>Rank</th><th>Participant ID</th><th>Participant Name</th><th>Paper Title</th><th>Average Score</th><th>Judges Count</th></tr>';
+    bestPaperRankings.forEach((row, idx) => {
+      const rankClass = idx === 0 ? 'rank-1 winner' : idx === 1 ? 'rank-2' : idx === 2 ? 'rank-3' : '';
+      html += `<tr class="${rankClass}">`;
+      html += `<td>${idx + 1}</td>`;
+      html += `<td>${row.participant.id}</td>`;
+      html += `<td>${row.participant.name}</td>`;
+      html += `<td>${row.participant.title}</td>`;
+      html += `<td>${row.avgScore.toFixed(2)} / 25</td>`;
+      html += `<td>${row.judgeCount}</td>`;
+      html += '</tr>';
+    });
+    html += '</table>';
+
+    // Young Researcher Rankings
+    html += '<h3>Young Researcher Award - Rankings</h3>';
+    html += '<table>';
+    html += '<tr><th>Rank</th><th>Participant ID</th><th>Participant Name</th><th>Paper Title</th><th>Average Score</th><th>Judges Count</th></tr>';
+    youngResearcherRankings.forEach((row, idx) => {
+      const rankClass = idx === 0 ? 'rank-1 winner' : idx === 1 ? 'rank-2' : idx === 2 ? 'rank-3' : '';
+      html += `<tr class="${rankClass}">`;
+      html += `<td>${idx + 1}</td>`;
+      html += `<td>${row.participant.id}</td>`;
+      html += `<td>${row.participant.name}</td>`;
+      html += `<td>${row.participant.title}</td>`;
+      html += `<td>${row.avgScore.toFixed(2)} / 25</td>`;
+      html += `<td>${row.judgeCount}</td>`;
+      html += '</tr>';
+    });
+    html += '</table>';
+
+    // Add Detailed Scores Section
+    html += '<h2>DETAILED SCORES BY JUDGE</h2>';
+    html += '<table>';
+    
+    [scoresHeaders, ...scoresRows].forEach((row, idx) => {
       html += '<tr>';
       row.forEach((cell, colIdx) => {
         if (idx === 0) {
-          // Header row
           html += `<th>${String(cell).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</th>`;
         } else {
-          // Data rows with colored columns
           let className = '';
           if (colIdx === 0) className = 'participant-id';
           else if (colIdx === 1) className = 'participant-name';
@@ -411,14 +426,15 @@ export default function HomePage() {
       html += '</tr>';
     });
     
-    html += '</table></body></html>';
+    html += '</table>';
+    html += '</body></html>';
 
     // Download
     const blob = new Blob([html], { type: "application/vnd.ms-excel" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `ICCIET_2025_Scores_${new Date().toISOString().split("T")[0]}.xls`);
+    link.setAttribute("download", `ICCIET_2025_Complete_Report_${new Date().toISOString().split("T")[0]}.xls`);
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -513,12 +529,6 @@ export default function HomePage() {
           >
             View Results
           </a>
-          <button
-            onClick={handleExportCSV}
-            className="text-xs px-4 py-2 rounded-xl border-2 border-white/50 text-white hover:bg-white/20 hover:border-white hover:scale-105 hover:shadow-lg transition-all duration-300 font-bold backdrop-blur-md"
-          >
-            Export CSV
-          </button>
           <button
             onClick={handleExportXLSX}
             className="text-xs px-4 py-2 rounded-xl border-2 border-white/50 text-white hover:bg-white/20 hover:border-white hover:scale-105 hover:shadow-lg transition-all duration-300 font-bold backdrop-blur-md"

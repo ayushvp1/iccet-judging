@@ -28,6 +28,18 @@ const PARTICIPANTS: Participant[] = [
   { id: "P13", name: "Deepnitha Ramachandran", title: "A Literature Review on the Evolution of IoT-Enabled Smart Home Automation for Secure, Scalable, and Intelligent Environments" },
   { id: "P14", name: "Veena Vijayan", title: "MULTI-OBJECTIVE DRAGONFLY OPTIMIZATION ALGORITHM (MODOA) BASED VM PLACEMENT STRATEGY TO MITIGATE CO-RESIDENT ATTACKS" },
   { id: "P15", name: "Akshara P", title: "BFLBreacher: Exposing Privacy Vulnerabilities in Federated Learning" },
+  { id: "P16", name: "Shayana P", title: "Smart organ donation and disease management system: an explainable AI Literature Review" },
+  { id: "P17", name: "Anulal P", title: "DeepReveal: An Explainable AI Framework for Robust Deepfake Detection" },
+  { id: "P18", name: "Ayush V P", title: "YOLOv8-GSAF: Lightweight Ghost and SimAM Enhanced Road Damage Detection Framework" },
+  { id: "P19", name: "Sainadh V", title: "Traffic sign detection using yolov8" },
+  { id: "P20", name: "Govind Hans V", title: "Enhancing Prediction on Imbalanced Medical Datasets: An Evaluation of Gradient Boosting Models with the SMOTE-MRS Technique" },
+  { id: "P21", name: "Amaya M", title: "Enhancing Eye Disease Classification with Transformer-Based Vision Model" },
+  { id: "P22", name: "Asher Vargheese K", title: "Transformer-Integrated YOLO-Air with Super-Resolution Preprocessing for Enhanced Small Object Detection in UAV Imagery" },
+  { id: "P23", name: "Sourav K", title: "Hybrid Weather forecasting using Machine Learning and Traditional Forecasting techniques" },
+  { id: "P24", name: "Aravind P", title: "Stock market price prediction using LSTM and Random forest and sentimental analysis via FinBERT" },
+  { id: "P25", name: "Ashitha P Sujith", title: "ENHANCED ALZHEIMER'S DETECTION USING VISION TRANSFORMERS AND EXPLAINABLE AI TECHNIQUES ON PREPROCESSED MRI SCANS" },
+  { id: "P26", name: "Gokul Krishna A M", title: "Research Paper Title" },
+  { id: "P27", name: "Fathima Safna C P", title: "Beyond Pixels: A Multi-Sensor Fusion Approach for Intelligent Wildfire Detection Using YOLO Architectures" },
 ];
 
 type ScoreRecord = {

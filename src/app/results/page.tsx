@@ -13,19 +13,21 @@ type Participant = {
 };
 
 const PARTICIPANTS: Participant[] = [
-  { id: "P01", name: "Akhil Sukumar P", title: "Research Paper Title" },
-  { id: "P02", name: "Rashmi R Nath", title: "Research Paper Title" },
-  { id: "P03", name: "Siji R", title: "Research Paper Title" },
-  { id: "P04", name: "Chaithra Dinesh", title: "Research Paper Title" },
-  { id: "P05", name: "Muhammad Puzhakkala Veettil", title: "Research Paper Title" },
-  { id: "P06", name: "Sandra Kv", title: "Research Paper Title" },
-  { id: "P07", name: "Remya K", title: "Research Paper Title" },
-  { id: "P08", name: "Hridya G", title: "Research Paper Title" },
-  { id: "P09", name: "Chandni Pm", title: "Research Paper Title" },
-  { id: "P10", name: "Joshna M", title: "Research Paper Title" },
-  { id: "P11", name: "Sreelakshmi Suresh", title: "Research Paper Title" },
-  { id: "P12", name: "Saniya Sudhan", title: "Research Paper Title" },
-  { id: "P13", name: "Shayana P", title: "Research Paper Title" },
+  { id: "P01", name: "Akhil Sukumar P", title: "Machine Learning–Enabled Framework for Adaptive Resource Allocation in Next-Generation Wireless Networks" },
+  { id: "P02", name: "Rashmi R Nath", title: "Optimized Deep Learning with Wavelet Features for Multi-Class EEG-Based Alzheimer's Disease Detection" },
+  { id: "P03", name: "Siji R", title: "The Role of Sign Language in Inclusive Education – Challenges and Technological Intervention" },
+  { id: "P04", name: "Chaithra Dinesh", title: "Integrating computational intelligence and medical imaging for lifestyle diseases management in India" },
+  { id: "P05", name: "Muhammad Puzhakkala Veettil", title: "Deep Learning and Hybrid Cryptographic Approaches for Securing Wireless Sensor Networks: A Comprehensive" },
+  { id: "P06", name: "Sandra Kv", title: "A Literature Review on the Evolution of IoT-Enabled Smart Home Automation for Secure, Scalable, and Intelligent Environments" },
+  { id: "P07", name: "Remya K", title: "A Review on Secure Machine-to-Machine Communication in Industrial IoT: Challenges and Computational Intelligence Approaches" },
+  { id: "P08", name: "Hridya G", title: "GlaucoNet: A Novel Multi-Scale Attention Network for Robust Glaucoma Classification from Noisy Fundus Images" },
+  { id: "P09", name: "Chandni P M", title: "A Comparative Analysis of Traditional Machine Learning and Deep Learning for Early Disease Detection from Leaf Textures" },
+  { id: "P10", name: "Joshna M", title: "AI for Green 6G: A Review of Energy-Aware Routing Techniques" },
+  { id: "P11", name: "Sreelakshmi Suresh", title: "A Literature Review on the Evolution of IoT-Enabled Smart Home Automation for Secure, Scalable, and Intelligent Environments" },
+  { id: "P12", name: "Saniya Sudhan", title: "A Literature Review on the Evolution of IoT-Enabled Smart Home Automation for Secure, Scalable, and Intelligent Environments" },
+  { id: "P13", name: "Deepnitha Ramachandran", title: "A Literature Review on the Evolution of IoT-Enabled Smart Home Automation for Secure, Scalable, and Intelligent Environments" },
+  { id: "P14", name: "Veena Vijayan", title: "MULTI-OBJECTIVE DRAGONFLY OPTIMIZATION ALGORITHM (MODOA) BASED VM PLACEMENT STRATEGY TO MITIGATE CO-RESIDENT ATTACKS" },
+  { id: "P15", name: "Akshara P", title: "BFLBreacher: Exposing Privacy Vulnerabilities in Federated Learning" },
 ];
 
 type ScoreRecord = {

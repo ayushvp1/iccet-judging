@@ -250,7 +250,17 @@ export default function HomePage() {
   };
 
   const handleClearAll = async () => {
-    if (!confirm("Clear ALL scores from the online database?")) return;
+    // Password protection
+    const password = prompt("⚠️ Enter password to clear all scores:");
+    if (password !== "1234") {
+      if (password !== null) {
+        alert("❌ Incorrect password. Access denied.");
+      }
+      return;
+    }
+
+    if (!confirm("Clear ALL scores from the online database? This cannot be undone!")) return;
+    
     setClearing(true);
     const { error } = await supabase.from("scores").delete().neq("id", "");
     setClearing(false);
@@ -262,6 +272,130 @@ export default function HomePage() {
     }
 
     setScoreRecords([]);
+    alert("✅ All scores have been cleared successfully.");
+  };
+
+  const handleExportCSV = () => {
+    if (scoreRecords.length === 0) {
+      alert("No scores to export.");
+      return;
+    }
+
+    // Build CSV content
+    const headers = [
+      "Participant ID",
+      "Participant Name",
+      "Paper Title",
+      "Judge",
+      "Section",
+      ...currentCriteria.map((c) => c.label),
+      "Total Score",
+      "Submitted At",
+    ];
+
+    const rows = scoreRecords.map((record) => {
+      const participant = PARTICIPANTS.find((p) => p.id === record.participantId);
+      const criteria =
+        record.section === "Best Paper"
+          ? BEST_PAPER_CRITERIA
+          : YOUNG_RESEARCHER_CRITERIA;
+
+      return [
+        record.participantId,
+        participant?.name || "Unknown",
+        participant?.title || "Unknown",
+        record.judge,
+        record.section,
+        ...criteria.map((c) => record.scores[c.id] || 0),
+        record.total,
+        new Date(record.createdAt).toLocaleString(),
+      ];
+    });
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+      ),
+    ].join("\n");
+
+    // Download
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `ICCIET_2025_Scores_${new Date().toISOString().split("T")[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportXLSX = () => {
+    if (scoreRecords.length === 0) {
+      alert("No scores to export.");
+      return;
+    }
+
+    // Build worksheet data
+    const headers = [
+      "Participant ID",
+      "Participant Name",
+      "Paper Title",
+      "Judge",
+      "Section",
+      ...BEST_PAPER_CRITERIA.map((c) => c.label),
+      "Total Score",
+      "Submitted At",
+    ];
+
+    const rows = scoreRecords.map((record) => {
+      const participant = PARTICIPANTS.find((p) => p.id === record.participantId);
+      const criteria =
+        record.section === "Best Paper"
+          ? BEST_PAPER_CRITERIA
+          : YOUNG_RESEARCHER_CRITERIA;
+
+      return [
+        record.participantId,
+        participant?.name || "Unknown",
+        participant?.title || "Unknown",
+        record.judge,
+        record.section,
+        ...criteria.map((c) => record.scores[c.id] || 0),
+        record.total,
+        new Date(record.createdAt).toLocaleString(),
+      ];
+    });
+
+    // Create simple XLSX format (XML-based)
+    const worksheet = [headers, ...rows];
+    
+    // Convert to HTML table for Excel
+    let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+    html += '<head><meta charset="utf-8"/></head><body><table>';
+    
+    worksheet.forEach((row, idx) => {
+      html += '<tr>';
+      row.forEach((cell) => {
+        const tag = idx === 0 ? 'th' : 'td';
+        html += `<${tag}>${String(cell).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</${tag}>`;
+      });
+      html += '</tr>';
+    });
+    
+    html += '</table></body></html>';
+
+    // Download
+    const blob = new Blob([html], { type: "application/vnd.ms-excel" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `ICCIET_2025_Scores_${new Date().toISOString().split("T")[0]}.xls`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   type RankingRow = {
@@ -345,13 +479,27 @@ export default function HomePage() {
             </p>
           )}
         </div>
-        <button
-          onClick={handleClearAll}
-          disabled={clearing}
-          className="relative z-10 mt-2 md:mt-0 text-xs px-4 py-2 rounded-xl border-2 border-white/50 text-white hover:bg-white/20 hover:border-white hover:scale-105 hover:shadow-lg transition-all duration-300 font-bold backdrop-blur-md disabled:opacity-60 disabled:hover:scale-100 disabled:hover:shadow-none"
-        >
-          {clearing ? "Clearing..." : "🗑️ Clear all scores"}
-        </button>
+        <div className="relative z-10 mt-2 md:mt-0 flex flex-wrap gap-2">
+          <button
+            onClick={handleExportCSV}
+            className="text-xs px-4 py-2 rounded-xl border-2 border-white/50 text-white hover:bg-white/20 hover:border-white hover:scale-105 hover:shadow-lg transition-all duration-300 font-bold backdrop-blur-md"
+          >
+            📊 Export CSV
+          </button>
+          <button
+            onClick={handleExportXLSX}
+            className="text-xs px-4 py-2 rounded-xl border-2 border-white/50 text-white hover:bg-white/20 hover:border-white hover:scale-105 hover:shadow-lg transition-all duration-300 font-bold backdrop-blur-md"
+          >
+            📈 Export Excel
+          </button>
+          <button
+            onClick={handleClearAll}
+            disabled={clearing}
+            className="text-xs px-4 py-2 rounded-xl border-2 border-white/50 text-white hover:bg-white/20 hover:border-white hover:scale-105 hover:shadow-lg transition-all duration-300 font-bold backdrop-blur-md disabled:opacity-60 disabled:hover:scale-100 disabled:hover:shadow-none"
+          >
+            {clearing ? "Clearing..." : "🗑️ Clear all"}
+          </button>
+        </div>
       </header>
 
       <div className="flex-1 px-4 sm:px-6 lg:px-10 py-6 grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">

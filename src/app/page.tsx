@@ -230,7 +230,7 @@ export default function HomePage() {
 
     if (error) {
       console.error("Error saving score:", error);
-      alert("Error saving score. Please try again.");
+      alert(`Error saving score: ${error.message}\n\nDetails: ${error.details || 'No additional details'}\n\nPlease check the console for more information.`);
       return;
     }
 

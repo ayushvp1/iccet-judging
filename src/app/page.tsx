@@ -368,18 +368,45 @@ export default function HomePage() {
       ];
     });
 
-    // Create simple XLSX format (XML-based)
+    // Create simple XLSX format (XML-based) with colors
     const worksheet = [headers, ...rows];
     
-    // Convert to HTML table for Excel
+    // Convert to HTML table for Excel with styling
     let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
-    html += '<head><meta charset="utf-8"/></head><body><table>';
+    html += '<head><meta charset="utf-8"/>';
+    html += '<style>';
+    html += 'table { border-collapse: collapse; width: 100%; }';
+    html += 'th { background-color: #175676; color: white; font-weight: bold; padding: 10px; border: 1px solid #ddd; text-align: left; }';
+    html += 'td { padding: 8px; border: 1px solid #ddd; }';
+    html += 'tr:nth-child(even) { background-color: #f9f9f9; }';
+    html += 'tr:hover { background-color: #f0f0f0; }';
+    html += '.participant-id { background-color: #e3f2fd; font-weight: bold; }';
+    html += '.participant-name { background-color: #fff3e0; }';
+    html += '.judge { background-color: #f3e5f5; }';
+    html += '.section { background-color: #e8f5e9; font-weight: bold; }';
+    html += '.score { background-color: #fff9c4; text-align: center; }';
+    html += '.total { background-color: #ffccbc; font-weight: bold; text-align: center; }';
+    html += '</style>';
+    html += '</head><body><table>';
     
     worksheet.forEach((row, idx) => {
       html += '<tr>';
-      row.forEach((cell) => {
-        const tag = idx === 0 ? 'th' : 'td';
-        html += `<${tag}>${String(cell).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</${tag}>`;
+      row.forEach((cell, colIdx) => {
+        if (idx === 0) {
+          // Header row
+          html += `<th>${String(cell).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</th>`;
+        } else {
+          // Data rows with colored columns
+          let className = '';
+          if (colIdx === 0) className = 'participant-id';
+          else if (colIdx === 1) className = 'participant-name';
+          else if (colIdx === 3) className = 'judge';
+          else if (colIdx === 4) className = 'section';
+          else if (colIdx >= 5 && colIdx < row.length - 2) className = 'score';
+          else if (colIdx === row.length - 2) className = 'total';
+          
+          html += `<td class="${className}">${String(cell).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`;
+        }
       });
       html += '</tr>';
     });
@@ -475,29 +502,35 @@ export default function HomePage() {
           </p>
           {loading && (
             <p className="text-xs text-white/80 mt-1">
-              ⏳ Loading scores from secure database...
+              Loading scores from secure database...
             </p>
           )}
         </div>
         <div className="relative z-10 mt-2 md:mt-0 flex flex-wrap gap-2">
+          <a
+            href="/results"
+            className="text-xs px-4 py-2 rounded-xl border-2 border-white/50 text-white hover:bg-white/20 hover:border-white hover:scale-105 hover:shadow-lg transition-all duration-300 font-bold backdrop-blur-md text-center"
+          >
+            View Results
+          </a>
           <button
             onClick={handleExportCSV}
             className="text-xs px-4 py-2 rounded-xl border-2 border-white/50 text-white hover:bg-white/20 hover:border-white hover:scale-105 hover:shadow-lg transition-all duration-300 font-bold backdrop-blur-md"
           >
-            📊 Export CSV
+            Export CSV
           </button>
           <button
             onClick={handleExportXLSX}
             className="text-xs px-4 py-2 rounded-xl border-2 border-white/50 text-white hover:bg-white/20 hover:border-white hover:scale-105 hover:shadow-lg transition-all duration-300 font-bold backdrop-blur-md"
           >
-            📈 Export Excel
+            Export Excel
           </button>
           <button
             onClick={handleClearAll}
             disabled={clearing}
             className="text-xs px-4 py-2 rounded-xl border-2 border-white/50 text-white hover:bg-white/20 hover:border-white hover:scale-105 hover:shadow-lg transition-all duration-300 font-bold backdrop-blur-md disabled:opacity-60 disabled:hover:scale-100 disabled:hover:shadow-none"
           >
-            {clearing ? "Clearing..." : "🗑️ Clear all"}
+            {clearing ? "Clearing..." : "Clear all"}
           </button>
         </div>
       </header>
@@ -521,7 +554,7 @@ export default function HomePage() {
           <div className="grid gap-3 sm:grid-cols-3 mb-5">
             <div className="flex flex-col gap-1">
               <label className="text-xs uppercase tracking-wide text-[#175676] font-bold">
-                👨‍⚖️ Judge
+                Judge
               </label>
               <select
                 className="bg-white border-2 border-[#175676]/30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ba324f] focus:border-[#ba324f] hover:border-[#175676] transition-all duration-300 font-medium shadow-sm"
@@ -539,7 +572,7 @@ export default function HomePage() {
 
             <div className="flex flex-col gap-1">
               <label className="text-xs uppercase tracking-wide text-[#175676] font-bold">
-                📂 Section
+                Section
               </label>
               <div className="flex bg-white border-2 border-[#175676]/30 rounded-lg overflow-hidden text-xs shadow-sm">
                 {(["Best Paper", "Young Researcher"] as Section[]).map(
@@ -563,7 +596,7 @@ export default function HomePage() {
 
             <div className="flex flex-col gap-1">
               <label className="text-xs uppercase tracking-wide text-[#175676] font-bold">
-                👤 Participant
+                Participant
               </label>
               <select
                 className="bg-white border-2 border-[#175676]/30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ba324f] focus:border-[#ba324f] hover:border-[#175676] transition-all duration-300 font-medium shadow-sm"
@@ -590,8 +623,8 @@ export default function HomePage() {
                 if (!p) return null;
                 return (
                   <>
-                    <div className="font-bold text-[#175676]">✨ {p.name}</div>
-                    <div className="text-gray-700 font-medium">📄 {p.title}</div>
+                    <div className="font-bold text-[#175676]">{p.name}</div>
+                    <div className="text-gray-700 font-medium">{p.title}</div>
                   </>
                 );
               })()}
@@ -638,7 +671,7 @@ export default function HomePage() {
 
           <div className="mt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t-2 border-[#175676]/20">
             <div className="text-xs text-gray-600 font-medium">
-              💡 Scores are stored in a secure online database and used to
+              Scores are stored in a secure online database and used to
               compute averages and rankings across all judges.
             </div>
             <button
@@ -647,7 +680,7 @@ export default function HomePage() {
               disabled={saving}
               className="px-6 py-3 rounded-xl bg-[#ba324f] text-white text-sm font-bold hover:bg-[#ba324f]/90 hover:scale-105 hover:shadow-2xl transition-all duration-300 shadow-lg disabled:opacity-60 disabled:hover:scale-100 disabled:hover:shadow-none"
             >
-              {saving ? "Saving..." : "💾 Save Score"}
+              {saving ? "Saving..." : "Save Score"}
             </button>
           </div>
         </section>
@@ -667,7 +700,7 @@ export default function HomePage() {
                 <div className="flex items-center gap-2 mb-3 pb-3 border-b-2 border-[#175676]/20">
                   <div className="w-1.5 h-6 bg-gradient-to-b from-[#ba324f] to-[#175676] rounded-full shadow-lg"></div>
                   <h2 className="text-lg font-bold text-[#175676] flex-1">
-                    🏆 {section} Ranking
+                    {section} Ranking
                   </h2>
                   <span className="text-xs font-bold text-[#175676] bg-[#175676]/10 px-3 py-1 rounded-full shadow-sm">
                     {rows.length} scored
@@ -675,7 +708,7 @@ export default function HomePage() {
                 </div>
                 {rows.length === 0 ? (
                   <p className="text-sm text-[#175676] font-medium">
-                    📊 No scores yet for this section.
+                    No scores yet for this section.
                   </p>
                 ) : (
                   <div className="overflow-x-auto">
@@ -751,11 +784,11 @@ export default function HomePage() {
             <div className="flex items-center gap-2 mb-3 pb-2 border-b-2 border-[#175676]/20">
               <div className="w-1.5 h-5 bg-gradient-to-b from-[#ba324f] to-[#175676] rounded-full shadow-lg"></div>
               <h2 className="text-sm font-bold text-[#175676]">
-                📋 Recent Submissions
+                Recent Submissions
               </h2>
             </div>
             {scoreRecords.length === 0 ? (
-              <p className="text-xs text-[#175676] font-medium">⏳ No scores recorded yet.</p>
+              <p className="text-xs text-[#175676] font-medium">No scores recorded yet.</p>
             ) : (
               <div className="max-h-60 overflow-y-auto space-y-2 text-xs">
                 {scoreRecords.slice(0, 20).map((record) => {
@@ -799,7 +832,7 @@ export default function HomePage() {
           <span className="text-white">ICCIET 2025</span> Judging Portal · International Conference on Computational Intelligence & Emerging Technologies
         </span>
         <span className="font-bold text-white">
-          ☁️ Scores synced via secure Supabase database
+          Scores synced via secure Supabase database
         </span>
       </footer>
     </main>

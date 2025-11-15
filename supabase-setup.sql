@@ -20,9 +20,13 @@ CREATE INDEX IF NOT EXISTS idx_scores_created_at ON scores(created_at DESC);
 -- Enable Row Level Security (RLS)
 ALTER TABLE scores ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if any
+DROP POLICY IF EXISTS "Allow all operations on scores" ON scores;
+
 -- Create a policy to allow all operations (you can make this more restrictive later)
 CREATE POLICY "Allow all operations on scores" ON scores
   FOR ALL
+  TO anon, authenticated
   USING (true)
   WITH CHECK (true);
 

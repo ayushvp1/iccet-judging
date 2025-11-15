@@ -560,10 +560,16 @@ export default function HomePage() {
     return result;
   }, [scoreRecords]);
 
+  // Count distinct participants who have been scored
+  const distinctParticipantsScored = useMemo(() => {
+    const uniqueParticipants = new Set(scoreRecords.map(r => r.participantId));
+    return uniqueParticipants.size;
+  }, [scoreRecords]);
+
 
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 text-gray-900 flex flex-col">
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 text-gray-900 flex flex-col">
       <header className="relative bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 px-6 py-6 flex flex-col gap-1 md:flex-row md:items-center md:justify-between shadow-2xl overflow-hidden">
         {/* Animated decorative blurs */}
         <div className="absolute inset-0">
@@ -831,25 +837,37 @@ export default function HomePage() {
         {/* Right: Participant Scoring History */}
         <section className="space-y-6">
           {/* All Participants Scores */}
-          <div className="relative bg-white/80 backdrop-blur-2xl border border-slate-200/60 rounded-3xl p-5 sm:p-6 shadow-2xl hover:shadow-purple-500/10 transition-all duration-500 overflow-hidden group">
-            <div className="absolute top-0 left-0 w-72 h-72 bg-gradient-to-br from-purple-400/10 via-pink-400/10 to-rose-400/10 rounded-full blur-3xl -z-10 group-hover:scale-125 transition-transform duration-700"></div>
+          <div className="relative bg-gradient-to-br from-slate-50/80 via-blue-50/70 to-cyan-50/80 backdrop-blur-2xl border border-blue-200/60 rounded-3xl p-5 sm:p-6 shadow-2xl hover:shadow-blue-500/20 transition-all duration-500 overflow-hidden group">
+            {/* Animated gradient orbs */}
+            <div className="absolute top-0 left-0 w-72 h-72 bg-gradient-to-br from-blue-300/20 via-cyan-300/15 to-slate-300/20 rounded-full blur-3xl -z-10 group-hover:scale-125 transition-transform duration-700 animate-pulse"></div>
+            <div className="absolute bottom-0 right-0 w-64 h-64 bg-gradient-to-tl from-cyan-300/15 via-blue-300/10 to-slate-300/15 rounded-full blur-3xl -z-10 group-hover:scale-125 transition-transform duration-700 animate-pulse" style={{ animationDelay: '1s' }}></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-blue-200/10 to-cyan-200/10 rounded-full blur-3xl -z-10"></div>
             
-            <div className="flex items-center gap-3 mb-4 pb-4 border-b-2 border-gradient-to-r from-purple-200 to-pink-200">
-              <div className="w-1 h-8 bg-gradient-to-b from-purple-600 to-pink-600 rounded-full shadow-lg"></div>
-              <h2 className="text-xl font-bold bg-gradient-to-r from-purple-700 to-pink-700 bg-clip-text text-transparent flex-1">
+            <div className="flex items-center gap-3 mb-4 pb-4 border-b-2 border-gradient-to-r from-blue-200 to-cyan-200">
+              <div className="w-1 h-8 bg-gradient-to-b from-blue-600 to-cyan-600 rounded-full shadow-lg"></div>
+              <h2 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-cyan-700 bg-clip-text text-transparent flex-1">
                 Participant Scores
               </h2>
-              <span className="text-xs font-bold text-purple-700 bg-gradient-to-r from-purple-100 to-pink-100 px-4 py-1.5 rounded-full shadow-md">
-                {scoreRecords.length} total
+              <span className="text-xs font-bold text-blue-700 bg-gradient-to-r from-blue-100 to-cyan-100 px-4 py-1.5 rounded-full shadow-md">
+                {distinctParticipantsScored} scored
               </span>
             </div>
 
             {scoreRecords.length === 0 ? (
-              <p className="text-sm text-[#175676] font-medium">
-                No scores recorded yet. Start scoring participants above.
-              </p>
+              <div className="relative text-center py-16 px-6 rounded-2xl bg-gradient-to-br from-blue-100/40 via-cyan-100/30 to-slate-100/40 border-2 border-dashed border-blue-300/50">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-transparent rounded-2xl"></div>
+                <div className="relative z-10">
+                  <div className="text-7xl mb-4 opacity-40 animate-pulse">📊</div>
+                  <p className="text-base text-blue-700 font-bold mb-1">
+                    No scores recorded yet
+                  </p>
+                  <p className="text-sm text-blue-600/70">
+                    Start scoring participants above
+                  </p>
+                </div>
+              </div>
             ) : (
-              <div className="max-h-[calc(100vh-250px)] overflow-y-auto space-y-3">
+              <div className="max-h-[calc(100vh-250px)] overflow-y-auto space-y-3 pr-2 custom-scrollbar">
                 {PARTICIPANTS.map((participant) => {
                   const participantScores = scoreRecords.filter(
                     (r) => r.participantId === participant.id
@@ -872,87 +890,103 @@ export default function HomePage() {
                   return (
                     <div
                       key={participant.id}
-                      className="border-2 border-[#175676]/20 rounded-xl p-3 bg-white hover:border-[#ba324f] hover:shadow-lg transition-all duration-300"
+                      className="relative border-2 border-blue-200/60 rounded-2xl p-4 bg-gradient-to-br from-white via-blue-50/40 via-cyan-50/30 to-slate-50/40 hover:border-blue-400 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 group overflow-hidden backdrop-blur-sm"
                     >
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex-1">
-                          <div className="font-bold text-[#175676] text-sm">
-                            {participant.name}
+                      {/* Decorative gradient overlays */}
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/25 via-cyan-400/20 to-slate-400/25 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                      <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-cyan-400/20 to-blue-400/15 rounded-full blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
+                      
+                      <div className="relative z-10">
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="inline-block px-2 py-0.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-[10px] font-bold rounded-md shadow-sm">
+                                {participant.id}
+                              </span>
+                              <div className="font-bold text-[#175676] text-sm leading-tight">
+                                {participant.name}
+                              </div>
+                            </div>
+                            <div className="text-xs text-gray-600 line-clamp-2 leading-relaxed">
+                              {participant.title}
+                            </div>
                           </div>
-                          <div className="text-xs text-gray-600">
-                            {participant.id}
+                          <div className="flex gap-2">
+                            {bestPaperScores.length > 0 && (
+                              <div className="text-center bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-xl px-3 py-2 shadow-md border border-yellow-300">
+                                <div className="text-base font-bold text-yellow-700">
+                                  {bestPaperAvg.toFixed(1)}
+                                </div>
+                                <div className="text-[9px] text-yellow-600 font-semibold uppercase tracking-wide">
+                                  BP Avg
+                                </div>
+                              </div>
+                            )}
+                            {youngResearcherScores.length > 0 && (
+                              <div className="text-center bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl px-3 py-2 shadow-md border border-blue-300">
+                                <div className="text-base font-bold text-blue-700">
+                                  {youngResearcherAvg.toFixed(1)}
+                                </div>
+                                <div className="text-[9px] text-blue-600 font-semibold uppercase tracking-wide">
+                                  YR Avg
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
-                        <div className="flex gap-3">
-                          {bestPaperScores.length > 0 && (
-                            <div className="text-right">
-                              <div className="text-sm font-bold text-yellow-600">
-                                {bestPaperAvg.toFixed(2)}
-                              </div>
-                              <div className="text-[9px] text-gray-500">
-                                BP Avg
-                              </div>
-                            </div>
-                          )}
-                          {youngResearcherScores.length > 0 && (
-                            <div className="text-right">
-                              <div className="text-sm font-bold text-blue-600">
-                                {youngResearcherAvg.toFixed(2)}
-                              </div>
-                              <div className="text-[9px] text-gray-500">
-                                YR Avg
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
 
-                      <div className="text-xs text-gray-700 mb-2 line-clamp-1">
-                        {participant.title}
-                      </div>
-
-                      {/* Individual judge scores */}
-                      <div className="space-y-1.5">
-                        {participantScores.map((score) => (
-                          <div
-                            key={score.id}
-                            className="flex items-center justify-between bg-gray-50 rounded-lg px-2 py-1.5 text-xs"
-                          >
-                            <div className="flex items-center gap-2 flex-1">
-                              <span className="font-semibold text-[#175676] truncate max-w-[120px]">
-                                {score.judge.split(' ').slice(-2).join(' ')}
-                              </span>
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                                score.section === "Best Paper" 
-                                  ? "bg-yellow-100 text-yellow-700" 
-                                  : "bg-blue-100 text-blue-700"
-                              }`}>
-                                {score.section === "Best Paper" ? "BP" : "YR"}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className={`font-bold ${
-                                score.section === "Best Paper" ? "text-yellow-600" : "text-blue-600"
-                              }`}>
-                                {score.total.toFixed(1)}
-                              </span>
-                              <span className="text-gray-500 text-[10px]">
-                                / {maxTotal}
-                              </span>
-                            </div>
+                        {/* Individual judge scores */}
+                        <div className="space-y-2 mt-3 pt-3 border-t border-blue-200/50">
+                          <div className="text-[10px] uppercase tracking-wider text-blue-600 font-bold mb-2">
+                            Judge Scores ({participantScores.length})
                           </div>
-                        ))}
-                      </div>
+                          {participantScores.map((score) => (
+                            <div
+                              key={score.id}
+                              className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs shadow-sm border transition-all duration-200 hover:scale-[1.02] ${
+                                score.section === "Best Paper"
+                                  ? "bg-gradient-to-r from-yellow-50 to-yellow-100/50 border-yellow-200 hover:border-yellow-400"
+                                  : "bg-gradient-to-r from-blue-50 to-blue-100/50 border-blue-200 hover:border-blue-400"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 flex-1">
+                                <span className={`font-bold truncate max-w-[140px] ${
+                                  score.section === "Best Paper" ? "text-yellow-800" : "text-blue-800"
+                                }`}>
+                                  {score.judge.split(' ').slice(-2).join(' ')}
+                                </span>
+                                <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm ${
+                                  score.section === "Best Paper" 
+                                    ? "bg-yellow-400 text-yellow-900" 
+                                    : "bg-blue-400 text-blue-900"
+                                }`}>
+                                  {score.section === "Best Paper" ? "BP" : "YR"}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className={`text-lg font-bold ${
+                                  score.section === "Best Paper" ? "text-yellow-700" : "text-blue-700"
+                                }`}>
+                                  {score.total.toFixed(1)}
+                                </span>
+                                <span className="text-gray-400 text-[10px] font-medium">
+                                  / {maxTotal}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
 
-                      <div className="mt-2 pt-2 border-t border-gray-200 text-[10px] text-gray-500 flex justify-between">
-                        <span>
-                          {bestPaperScores.length > 0 && `BP: ${bestPaperScores.length} judge${bestPaperScores.length > 1 ? 's' : ''}`}
-                          {bestPaperScores.length > 0 && youngResearcherScores.length > 0 && ' • '}
-                          {youngResearcherScores.length > 0 && `YR: ${youngResearcherScores.length} judge${youngResearcherScores.length > 1 ? 's' : ''}`}
-                        </span>
-                        <span className="font-semibold">
-                          Total: {participantScores.length} scores
-                        </span>
+                        <div className="mt-3 pt-3 border-t border-blue-200/50 text-[10px] text-gray-500 flex justify-between items-center">
+                          <span className="font-medium">
+                            {bestPaperScores.length > 0 && `BP: ${bestPaperScores.length} judge${bestPaperScores.length > 1 ? 's' : ''}`}
+                            {bestPaperScores.length > 0 && youngResearcherScores.length > 0 && ' • '}
+                            {youngResearcherScores.length > 0 && `YR: ${youngResearcherScores.length} judge${youngResearcherScores.length > 1 ? 's' : ''}`}
+                          </span>
+                          <span className="font-bold text-blue-600">
+                            {participantScores.length} total
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );
@@ -963,12 +997,12 @@ export default function HomePage() {
         </section>
       </div>
 
-      <footer className="bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 px-6 py-5 text-xs flex flex-col sm:flex-row justify-between gap-2 shadow-2xl border-t border-blue-800/30">
-        <span className="font-semibold text-white/90">
-          <span className="text-cyan-300 font-bold">ICCIET 2025</span> Judging Portal · International Conference on Computational Intelligence & Emerging Technologies
+      <footer className="bg-gradient-to-r from-slate-100 via-blue-100 to-cyan-100 px-6 py-5 text-xs flex flex-col sm:flex-row justify-between gap-2 shadow-2xl border-t border-blue-200">
+        <span className="font-semibold text-gray-700">
+          <span className="text-blue-700 font-bold">ICCIET 2025</span> Judging Portal · International Conference on Computational Intelligence & Emerging Technologies
         </span>
-        <span className="font-semibold text-white/90">
-          <span className="text-emerald-400">✓</span> Scores synced via secure Supabase database
+        <span className="font-semibold text-gray-700">
+          <span className="text-emerald-600">✓</span> Scores synced via secure Supabase database
         </span>
       </footer>
     </main>

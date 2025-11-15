@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "../../lib/supabaseClient";
 
 // ===== STEP 1: EDIT THIS SECTION ONLY =====
 // Put your real participants & criteria here (from the Excel).
@@ -124,39 +125,15 @@ type ScoreRecord = {
   createdAt: string;
 };
 
-const STORAGE_KEY = "iccet2025_scores_v1";
-
 export default function HomePage() {
   const [selectedJudge, setSelectedJudge] = useState<string>("");
   const [selectedSection, setSelectedSection] = useState<Section>("Best Paper");
   const [selectedParticipantId, setSelectedParticipantId] = useState<string>("");
   const [criterionScores, setCriterionScores] = useState<Record<string, string>>({});
   const [scoreRecords, setScoreRecords] = useState<ScoreRecord[]>([]);
-
-  // Load saved scores from localStorage
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as ScoreRecord[];
-        setScoreRecords(parsed);
-      } catch {
-        // ignore parse errors
-      }
-    }
-  }, []);
-
-  // Persist scores to localStorage
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(scoreRecords));
-  }, [scoreRecords]);
-
-  const handleScoreChange = (criterionId: string, value: string) => {
-    if (!/^\d*$/.test(value)) return; // digits only
-    setCriterionScores((prev) => ({ ...prev, [criterionId]: value }));
-  };
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [clearing, setClearing] = useState<boolean>(false);
 
   // Get criteria based on selected section
   const currentCriteria =
@@ -164,7 +141,47 @@ export default function HomePage() {
       ? BEST_PAPER_CRITERIA
       : YOUNG_RESEARCHER_CRITERIA;
 
-  const handleSubmitScore = () => {
+  const maxTotal = currentCriteria.reduce((sum, c) => sum + c.max, 0);
+
+  // Load scores from Supabase on mount
+  useEffect(() => {
+    const fetchScores = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("scores")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error loading scores:", error);
+        setLoading(false);
+        return;
+      }
+
+      if (data) {
+        const mapped: ScoreRecord[] = data.map((row: any) => ({
+          id: row.id,
+          participantId: row.participant_id,
+          judge: row.judge,
+          section: row.section as Section,
+          scores: row.scores || {},
+          total: Number(row.total),
+          createdAt: row.created_at,
+        }));
+        setScoreRecords(mapped);
+      }
+      setLoading(false);
+    };
+
+    fetchScores();
+  }, []);
+
+  const handleScoreChange = (criterionId: string, value: string) => {
+    if (!/^\d*$/.test(value)) return; // digits only
+    setCriterionScores((prev) => ({ ...prev, [criterionId]: value }));
+  };
+
+  const handleSubmitScore = async () => {
     if (!selectedJudge) {
       alert("Please select a judge.");
       return;
@@ -196,14 +213,35 @@ export default function HomePage() {
 
     const total = Object.values(numericScores).reduce((sum, v) => sum + v, 0);
 
+    setSaving(true);
+    const { data, error } = await supabase
+      .from("scores")
+      .insert({
+        participant_id: selectedParticipantId,
+        judge: selectedJudge,
+        section: selectedSection,
+        scores: numericScores,
+        total,
+      })
+      .select("*")
+      .single();
+
+    setSaving(false);
+
+    if (error) {
+      console.error("Error saving score:", error);
+      alert("Error saving score. Please try again.");
+      return;
+    }
+
     const newRecord: ScoreRecord = {
-      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      participantId: selectedParticipantId,
-      judge: selectedJudge,
-      section: selectedSection,
-      scores: numericScores,
-      total,
-      createdAt: new Date().toISOString(),
+      id: data.id,
+      participantId: data.participant_id,
+      judge: data.judge,
+      section: data.section as Section,
+      scores: data.scores || {},
+      total: Number(data.total),
+      createdAt: data.created_at,
     };
 
     setScoreRecords((prev) => [newRecord, ...prev]);
@@ -211,12 +249,19 @@ export default function HomePage() {
     setCriterionScores({});
   };
 
-  const handleClearAll = () => {
-    if (!confirm("Clear ALL saved scores from this device?")) return;
-    setScoreRecords([]);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(STORAGE_KEY);
+  const handleClearAll = async () => {
+    if (!confirm("Clear ALL scores from the online database?")) return;
+    setClearing(true);
+    const { error } = await supabase.from("scores").delete().neq("id", "");
+    setClearing(false);
+
+    if (error) {
+      console.error("Error clearing scores:", error);
+      alert("Error clearing scores. Please try again.");
+      return;
     }
+
+    setScoreRecords([]);
   };
 
   type RankingRow = {
@@ -266,9 +311,7 @@ export default function HomePage() {
     return result;
   }, [scoreRecords]);
 
-  const maxTotal = currentCriteria.reduce((sum, c) => sum + c.max, 0);
-
-  // Clear scores when section changes
+  // Clear score inputs when section changes
   useEffect(() => {
     setCriterionScores({});
   }, [selectedSection]);
@@ -288,20 +331,26 @@ export default function HomePage() {
         
         {/* Content */}
         <div className="relative z-10 group">
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-white drop-shadow-lg transition-all duration-300 group-hover:scale-105">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight drop-shadow-lg transition-all duration-300 group-hover:scale-105 bg-white px-4 py-2 rounded-lg inline-block">
             <span className="text-[#ba324f] hover:text-[#ba324f]/90 transition-colors">ICCIET</span>{" "}
             <span className="text-[#ba324f] hover:text-[#ba324f]/90 transition-colors">2025</span>{" "}
-            <span className="hover:text-white/90 transition-colors">– Judging Portal</span>
+            <span className="text-[#175676] hover:text-[#175676]/90 transition-colors">– Judging Portal</span>
           </h1>
-          <p className="text-sm text-white/90 font-medium backdrop-blur-sm">
+          <p className="text-sm text-white/90 font-medium backdrop-blur-sm mt-2">
             International Conference on Computational Intelligence & Emerging Technologies
           </p>
+          {loading && (
+            <p className="text-xs text-white/80 mt-1">
+              ⏳ Loading scores from secure database...
+            </p>
+          )}
         </div>
         <button
           onClick={handleClearAll}
-          className="relative z-10 mt-2 md:mt-0 text-xs px-4 py-2 rounded-xl border-2 border-white/50 text-white hover:bg-white/20 hover:border-white hover:scale-105 hover:shadow-lg transition-all duration-300 font-bold backdrop-blur-md"
+          disabled={clearing}
+          className="relative z-10 mt-2 md:mt-0 text-xs px-4 py-2 rounded-xl border-2 border-white/50 text-white hover:bg-white/20 hover:border-white hover:scale-105 hover:shadow-lg transition-all duration-300 font-bold backdrop-blur-md disabled:opacity-60 disabled:hover:scale-100 disabled:hover:shadow-none"
         >
-          🗑️ Clear all scores
+          {clearing ? "Clearing..." : "🗑️ Clear all scores"}
         </button>
       </header>
 
@@ -353,7 +402,7 @@ export default function HomePage() {
                       onClick={() => setSelectedSection(sec)}
                       className={`flex-1 px-2 py-2 transition-all duration-300 font-semibold ${
                         selectedSection === sec
-                          ? "bg-gradient-to-r from-[#ba324f] to-[#175676] text-white shadow-lg scale-105"
+                          ? "bg-[#175676] text-white shadow-lg scale-105"
                           : "text-[#175676] hover:bg-[#175676]/10 hover:scale-102"
                       }`}
                     >
@@ -405,8 +454,6 @@ export default function HomePage() {
           <div className="space-y-3">
             {currentCriteria.map((c) => {
               const value = criterionScores[c.id] ?? "";
-              const num = Number(value || 0);
-              const clamped = Math.max(0, Math.min(c.max, isNaN(num) ? 0 : num));
 
               return (
                 <div
@@ -443,15 +490,16 @@ export default function HomePage() {
 
           <div className="mt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t-2 border-[#175676]/20">
             <div className="text-xs text-gray-600 font-medium">
-              💡 Each submission is stored locally on this device and used to
-              compute averages per participant and section.
+              💡 Scores are stored in a secure online database and used to
+              compute averages and rankings across all judges.
             </div>
             <button
               type="button"
               onClick={handleSubmitScore}
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#ba324f] to-[#175676] text-white text-sm font-bold hover:from-[#ba324f]/90 hover:to-[#175676]/90 hover:scale-105 hover:shadow-2xl transition-all duration-300 shadow-lg shadow-[#175676]/50"
+              disabled={saving}
+              className="px-6 py-3 rounded-xl bg-[#ba324f] text-white text-sm font-bold hover:bg-[#ba324f]/90 hover:scale-105 hover:shadow-2xl transition-all duration-300 shadow-lg disabled:opacity-60 disabled:hover:scale-100 disabled:hover:shadow-none"
             >
-              💾 Save Score
+              {saving ? "Saving..." : "💾 Save Score"}
             </button>
           </div>
         </section>
@@ -598,21 +646,13 @@ export default function HomePage() {
         </section>
       </div>
 
-      <footer className="relative bg-gradient-to-r from-[#ba324f] to-[#175676] px-6 py-4 text-[11px] flex flex-col sm:flex-row justify-between gap-2 shadow-2xl overflow-hidden backdrop-blur-xl">
-        {/* Animated decorative blurs */}
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-0 w-64 h-64 bg-[#ba324f]/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-0 right-0 w-64 h-64 bg-[#175676]/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        </div>
-        
-        {/* Glass overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-md"></div>
-        
-        {/* Content */}
-        <span className="relative z-10 font-bold text-white/95">
+      <footer className="bg-gradient-to-r from-[#ba324f] to-[#175676] px-6 py-4 text-[11px] flex flex-col sm:flex-row justify-between gap-2 shadow-2xl">
+        <span className="font-bold text-white">
           <span className="text-white">ICCIET 2025</span> Judging Portal · International Conference on Computational Intelligence & Emerging Technologies
         </span>
-        <span className="relative z-10 font-bold text-white/90">🔒 Local-only data storage</span>
+        <span className="font-bold text-white">
+          ☁️ Scores synced via secure Supabase database
+        </span>
       </footer>
     </main>
   );

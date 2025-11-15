@@ -143,21 +143,16 @@ type ScoreRecord = {
 
 export default function HomePage() {
   const [selectedJudge, setSelectedJudge] = useState<string>("");
-  const [selectedSection, setSelectedSection] = useState<Section>("Best Paper");
   const [selectedParticipantId, setSelectedParticipantId] = useState<string>("");
-  const [criterionScores, setCriterionScores] = useState<Record<string, string>>({});
+  const [bestPaperScores, setBestPaperScores] = useState<Record<string, string>>({});
+  const [youngResearcherScores, setYoungResearcherScores] = useState<Record<string, string>>({});
   const [scoreRecords, setScoreRecords] = useState<ScoreRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [saving, setSaving] = useState<boolean>(false);
+  const [savingBestPaper, setSavingBestPaper] = useState<boolean>(false);
+  const [savingYoungResearcher, setSavingYoungResearcher] = useState<boolean>(false);
   const [clearing, setClearing] = useState<boolean>(false);
 
-  // Get criteria based on selected section
-  const currentCriteria =
-    selectedSection === "Best Paper"
-      ? BEST_PAPER_CRITERIA
-      : YOUNG_RESEARCHER_CRITERIA;
-
-  const maxTotal = currentCriteria.reduce((sum, c) => sum + c.max, 0);
+  const maxTotal = 25; // Each section has 5 criteria × 5 points = 25 max
 
   // Load scores from Supabase on mount
   useEffect(() => {
@@ -192,12 +187,15 @@ export default function HomePage() {
     fetchScores();
   }, []);
 
-  const handleScoreChange = (criterionId: string, value: string) => {
-    if (!/^\d*$/.test(value)) return; // digits only
-    setCriterionScores((prev) => ({ ...prev, [criterionId]: value }));
+  const handleScoreChange = (section: Section, criterionId: string, value: string) => {
+    if (section === "Best Paper") {
+      setBestPaperScores((prev) => ({ ...prev, [criterionId]: value }));
+    } else {
+      setYoungResearcherScores((prev) => ({ ...prev, [criterionId]: value }));
+    }
   };
 
-  const handleSubmitScore = async () => {
+  const handleSubmitAllScores = async () => {
     if (!selectedJudge) {
       alert("Please select a judge.");
       return;
@@ -207,62 +205,120 @@ export default function HomePage() {
       return;
     }
 
-    // Validate & clamp scores
-    const numericScores: Record<string, number> = {};
-    for (const c of currentCriteria) {
-      const raw = criterionScores[c.id];
+    // Validate Best Paper scores
+    const bestPaperNumericScores: Record<string, number> = {};
+    for (const c of BEST_PAPER_CRITERIA) {
+      const raw = bestPaperScores[c.id];
       if (!raw) {
-        alert(`Please enter score for "${c.label}".`);
+        alert(`Please enter score for "${c.label}" in Best Paper section.`);
         return;
       }
       const num = Number(raw);
       if (isNaN(num)) {
-        alert(`Invalid score for "${c.label}".`);
+        alert(`Invalid score for "${c.label}" in Best Paper section.`);
         return;
       }
       if (num < 0 || num > c.max) {
         alert(`Score for "${c.label}" must be between 0 and ${c.max}.`);
         return;
       }
-      numericScores[c.id] = num;
+      bestPaperNumericScores[c.id] = num;
     }
 
-    const total = Object.values(numericScores).reduce((sum, v) => sum + v, 0);
+    // Validate Young Researcher scores
+    const youngResearcherNumericScores: Record<string, number> = {};
+    for (const c of YOUNG_RESEARCHER_CRITERIA) {
+      const raw = youngResearcherScores[c.id];
+      if (!raw) {
+        alert(`Please enter score for "${c.label}" in Young Researcher section.`);
+        return;
+      }
+      const num = Number(raw);
+      if (isNaN(num)) {
+        alert(`Invalid score for "${c.label}" in Young Researcher section.`);
+        return;
+      }
+      if (num < 0 || num > c.max) {
+        alert(`Score for "${c.label}" must be between 0 and ${c.max}.`);
+        return;
+      }
+      youngResearcherNumericScores[c.id] = num;
+    }
 
-    setSaving(true);
-    const { data, error } = await supabase
+    const bestPaperTotal = Object.values(bestPaperNumericScores).reduce((sum, v) => sum + v, 0);
+    const youngResearcherTotal = Object.values(youngResearcherNumericScores).reduce((sum, v) => sum + v, 0);
+
+    setSavingBestPaper(true);
+    setSavingYoungResearcher(true);
+
+    // Save both scores
+    const { data: bestPaperData, error: bestPaperError } = await supabase
       .from("scores")
       .insert({
         participant_id: selectedParticipantId,
         judge: selectedJudge,
-        section: selectedSection,
-        scores: numericScores,
-        total,
+        section: "Best Paper",
+        scores: bestPaperNumericScores,
+        total: bestPaperTotal,
       })
       .select("*")
       .single();
 
-    setSaving(false);
+    const { data: youngResearcherData, error: youngResearcherError } = await supabase
+      .from("scores")
+      .insert({
+        participant_id: selectedParticipantId,
+        judge: selectedJudge,
+        section: "Young Researcher",
+        scores: youngResearcherNumericScores,
+        total: youngResearcherTotal,
+      })
+      .select("*")
+      .single();
 
-    if (error) {
-      console.error("Error saving score:", error);
-      alert(`Error saving score: ${error.message}\n\nDetails: ${error.details || 'No additional details'}\n\nPlease check the console for more information.`);
+    setSavingBestPaper(false);
+    setSavingYoungResearcher(false);
+
+    if (bestPaperError || youngResearcherError) {
+      console.error("Error saving scores:", bestPaperError, youngResearcherError);
+      alert(`Error saving scores. Please try again.`);
       return;
     }
 
-    const newRecord: ScoreRecord = {
-      id: data.id,
-      participantId: data.participant_id,
-      judge: data.judge,
-      section: data.section as Section,
-      scores: data.scores || {},
-      total: Number(data.total),
-      createdAt: data.created_at,
-    };
+    // Add both records to the list
+    const newRecords: ScoreRecord[] = [];
+    
+    if (bestPaperData) {
+      newRecords.push({
+        id: bestPaperData.id,
+        participantId: bestPaperData.participant_id,
+        judge: bestPaperData.judge,
+        section: bestPaperData.section as Section,
+        scores: bestPaperData.scores || {},
+        total: Number(bestPaperData.total),
+        createdAt: bestPaperData.created_at,
+      });
+    }
 
-    setScoreRecords((prev) => [newRecord, ...prev]);
-    // Clear scores only, keep judge/participant selection for faster entry
-    setCriterionScores({});
+    if (youngResearcherData) {
+      newRecords.push({
+        id: youngResearcherData.id,
+        participantId: youngResearcherData.participant_id,
+        judge: youngResearcherData.judge,
+        section: youngResearcherData.section as Section,
+        scores: youngResearcherData.scores || {},
+        total: Number(youngResearcherData.total),
+        createdAt: youngResearcherData.created_at,
+      });
+    }
+
+    setScoreRecords((prev) => [...newRecords, ...prev]);
+    
+    // Clear all scores
+    setBestPaperScores({});
+    setYoungResearcherScores({});
+    
+    alert("✅ Both scores saved successfully!");
   };
 
   const handleClearAll = async () => {
@@ -504,36 +560,33 @@ export default function HomePage() {
     return result;
   }, [scoreRecords]);
 
-  // Clear score inputs when section changes
-  useEffect(() => {
-    setCriterionScores({});
-  }, [selectedSection]);
+
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 text-gray-900 flex flex-col">
-      <header className="relative bg-gradient-to-r from-black via-gray-900 to-black px-6 py-5 flex flex-col gap-1 md:flex-row md:items-center md:justify-between shadow-2xl overflow-hidden backdrop-blur-xl">
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 text-gray-900 flex flex-col">
+      <header className="relative bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 px-6 py-6 flex flex-col gap-1 md:flex-row md:items-center md:justify-between shadow-2xl overflow-hidden">
         {/* Animated decorative blurs */}
         <div className="absolute inset-0">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-gray-700/30 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-gray-800/40 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-2xl"></div>
+          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-cyan-400/10 rounded-full blur-2xl"></div>
         </div>
         
         {/* Glass overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-white/3 to-white/5 backdrop-blur-md"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-white/3 to-white/5 backdrop-blur-sm"></div>
         
         {/* Content */}
         <div className="relative z-10 group">
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight drop-shadow-lg transition-all duration-300 group-hover:scale-105 bg-white px-4 py-2 rounded-lg inline-block">
-            <span className="text-[#ba324f] hover:text-[#ba324f]/90 transition-colors">ICCIET</span>{" "}
-            <span className="text-[#ba324f] hover:text-[#ba324f]/90 transition-colors">2025</span>{" "}
-            <span className="text-[#175676] hover:text-[#175676]/90 transition-colors">– Judging Portal</span>
+          <h1 className="text-xl md:text-3xl font-bold tracking-tight drop-shadow-2xl transition-all duration-300 group-hover:scale-[1.02] bg-gradient-to-r from-white to-blue-50 px-5 py-3 rounded-2xl inline-block shadow-xl">
+            <span className="bg-gradient-to-r from-rose-500 to-pink-600 bg-clip-text text-transparent">ICCIET</span>{" "}
+            <span className="bg-gradient-to-r from-rose-500 to-pink-600 bg-clip-text text-transparent">2025</span>{" "}
+            <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">– Judging Portal</span>
           </h1>
-          <p className="text-sm text-white/90 font-medium backdrop-blur-sm mt-2">
+          <p className="text-sm text-white/95 font-semibold backdrop-blur-sm mt-2 drop-shadow-lg">
             International Conference on Computational Intelligence & Emerging Technologies
           </p>
           {loading && (
-            <p className="text-xs text-white/80 mt-1">
+            <p className="text-xs text-cyan-300 mt-1 animate-pulse">
               Loading scores from secure database...
             </p>
           )}
@@ -541,20 +594,20 @@ export default function HomePage() {
         <div className="relative z-10 mt-2 md:mt-0 flex flex-wrap gap-2">
           <a
             href="/results"
-            className="text-xs px-4 py-2 rounded-xl border-2 border-white/50 text-white hover:bg-white/20 hover:border-white hover:scale-105 hover:shadow-lg transition-all duration-300 font-bold backdrop-blur-md text-center"
+            className="text-xs px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 hover:scale-105 hover:shadow-2xl transition-all duration-300 font-bold shadow-lg"
           >
             View Results
           </a>
           <button
             onClick={handleExportXLSX}
-            className="text-xs px-4 py-2 rounded-xl border-2 border-white/50 text-white hover:bg-white/20 hover:border-white hover:scale-105 hover:shadow-lg transition-all duration-300 font-bold backdrop-blur-md"
+            className="text-xs px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 hover:scale-105 hover:shadow-2xl transition-all duration-300 font-bold shadow-lg"
           >
             Export Excel
           </button>
           <button
             onClick={handleClearAll}
             disabled={clearing}
-            className="text-xs px-4 py-2 rounded-xl border-2 border-white/50 text-white hover:bg-white/20 hover:border-white hover:scale-105 hover:shadow-lg transition-all duration-300 font-bold backdrop-blur-md disabled:opacity-60 disabled:hover:scale-100 disabled:hover:shadow-none"
+            className="text-xs px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 text-white hover:from-red-700 hover:to-rose-700 hover:scale-105 hover:shadow-2xl transition-all duration-300 font-bold shadow-lg disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-lg disabled:cursor-not-allowed"
           >
             {clearing ? "Clearing..." : "Clear all"}
           </button>
@@ -563,27 +616,28 @@ export default function HomePage() {
 
       <div className="flex-1 px-4 sm:px-6 lg:px-10 py-6 grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
         {/* Left: Scoring form */}
-        <section className="relative bg-white backdrop-blur-xl border-2 border-[#175676]/30 rounded-2xl p-4 sm:p-6 shadow-2xl hover:shadow-[#175676]/20 transition-all duration-300 overflow-hidden group">
+        <section className="relative bg-white/80 backdrop-blur-2xl border border-slate-200/60 rounded-3xl p-5 sm:p-7 shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 overflow-hidden group">
           {/* Decorative blur */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#ba324f]/10 to-[#175676]/10 rounded-full blur-3xl -z-10 group-hover:scale-110 transition-transform duration-500"></div>
+          <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-blue-400/10 via-purple-400/10 to-pink-400/10 rounded-full blur-3xl -z-10 group-hover:scale-125 transition-transform duration-700"></div>
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-cyan-400/10 to-blue-400/10 rounded-full blur-3xl -z-10 group-hover:scale-125 transition-transform duration-700"></div>
           
-          <div className="flex items-center gap-2 mb-4 pb-3 border-b-2 border-[#175676]/20">
-            <div className="w-1.5 h-6 bg-gradient-to-b from-[#ba324f] to-[#175676] rounded-full shadow-lg"></div>
-            <h2 className="text-lg font-bold text-[#175676] flex-1">
+          <div className="flex items-center gap-3 mb-5 pb-4 border-b-2 border-gradient-to-r from-blue-200 via-purple-200 to-pink-200">
+            <div className="w-1 h-8 bg-gradient-to-b from-blue-600 via-purple-600 to-pink-600 rounded-full shadow-lg"></div>
+            <h2 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent flex-1">
               Judge Scoring Panel
             </h2>
-            <span className="text-xs font-bold text-[#175676] bg-[#175676]/10 px-3 py-1 rounded-full shadow-sm">
-              Max: {maxTotal} pts
+            <span className="text-xs font-bold text-blue-700 bg-gradient-to-r from-blue-100 to-purple-100 px-4 py-1.5 rounded-full shadow-md">
+              Both Sections
             </span>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3 mb-5">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs uppercase tracking-wide text-[#175676] font-bold">
+          <div className="grid gap-4 sm:grid-cols-2 mb-6">
+            <div className="flex flex-col gap-2">
+              <label className="text-xs uppercase tracking-wider text-blue-700 font-bold">
                 Judge
               </label>
               <select
-                className="bg-white border-2 border-[#175676]/30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ba324f] focus:border-[#ba324f] hover:border-[#175676] transition-all duration-300 font-medium shadow-sm"
+                className="bg-gradient-to-br from-white to-blue-50/50 border-2 border-blue-200/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-400 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl cursor-pointer"
                 value={selectedJudge}
                 onChange={(e) => setSelectedJudge(e.target.value)}
               >
@@ -596,36 +650,12 @@ export default function HomePage() {
               </select>
             </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-xs uppercase tracking-wide text-[#175676] font-bold">
-                Section
-              </label>
-              <div className="flex bg-white border-2 border-[#175676]/30 rounded-lg overflow-hidden text-xs shadow-sm">
-                {(["Best Paper", "Young Researcher"] as Section[]).map(
-                  (sec) => (
-                    <button
-                      key={sec}
-                      type="button"
-                      onClick={() => setSelectedSection(sec)}
-                      className={`flex-1 px-2 py-2 transition-all duration-300 font-semibold ${
-                        selectedSection === sec
-                          ? "bg-[#175676] text-white shadow-lg scale-105"
-                          : "text-[#175676] hover:bg-[#175676]/10 hover:scale-102"
-                      }`}
-                    >
-                      {sec}
-                    </button>
-                  )
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="text-xs uppercase tracking-wide text-[#175676] font-bold">
+            <div className="flex flex-col gap-2">
+              <label className="text-xs uppercase tracking-wider text-purple-700 font-bold">
                 Participant
               </label>
               <select
-                className="bg-white border-2 border-[#175676]/30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ba324f] focus:border-[#ba324f] hover:border-[#175676] transition-all duration-300 font-medium shadow-sm"
+                className="bg-gradient-to-br from-white to-purple-50/50 border-2 border-purple-200/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 hover:border-purple-400 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl cursor-pointer"
                 value={selectedParticipantId}
                 onChange={(e) => setSelectedParticipantId(e.target.value)}
               >
@@ -641,7 +671,7 @@ export default function HomePage() {
 
           {/* Participant info */}
           {selectedParticipantId && (
-            <div className="mb-5 text-xs sm:text-sm bg-gradient-to-r from-[#ba324f]/5 via-white to-[#175676]/5 border-2 border-[#175676]/30 rounded-xl px-4 py-3 shadow-md hover:shadow-lg hover:scale-[1.02] transition-all duration-300 backdrop-blur-sm">
+            <div className="mb-6 text-sm bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 border-2 border-blue-200/60 rounded-2xl px-5 py-4 shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 backdrop-blur-sm">
               {(() => {
                 const p = PARTICIPANTS.find(
                   (x) => x.id === selectedParticipantId
@@ -649,199 +679,279 @@ export default function HomePage() {
                 if (!p) return null;
                 return (
                   <>
-                    <div className="font-bold text-[#175676]">{p.name}</div>
-                    <div className="text-gray-700 font-medium">{p.title}</div>
+                    <div className="font-bold text-blue-800 text-base">{p.name}</div>
+                    <div className="text-gray-700 font-medium mt-1">{p.title}</div>
                   </>
                 );
               })()}
             </div>
           )}
 
-          {/* Criteria inputs */}
-          <div className="space-y-3">
-            {currentCriteria.map((c) => {
-              const value = criterionScores[c.id] ?? "";
+          {/* Best Paper Section */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3 pb-2 border-b-2 border-yellow-400">
+              <div className="w-1 h-5 bg-yellow-400 rounded-full"></div>
+              <h3 className="text-md font-bold text-yellow-700">Best Paper Award</h3>
+            </div>
+            <div className="space-y-2">
+              {BEST_PAPER_CRITERIA.map((c) => {
+                const value = bestPaperScores[c.id] ?? "";
+                const numValue = value ? parseFloat(value) : 0;
 
-              return (
-                <div
-                  key={c.id}
-                  className="group flex flex-col gap-2 bg-white border-2 border-[#175676]/20 rounded-xl px-3 py-3 hover:border-[#ba324f] hover:shadow-lg hover:scale-[1.02] transition-all duration-300"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-start gap-2">
+                return (
+                  <div
+                    key={c.id}
+                    className="group flex flex-col gap-2 bg-yellow-50 border-2 border-yellow-200 rounded-xl px-3 py-2 hover:border-yellow-400 hover:shadow-lg transition-all duration-300"
+                  >
                     <div className="flex-1">
-                      <div className="text-sm font-bold text-[#175676] group-hover:text-[#ba324f] transition-all duration-300">
+                      <div className="text-sm font-bold text-yellow-800">
                         {c.label}
                       </div>
-                      <div className="text-xs text-gray-600 mt-0.5 group-hover:text-gray-700 transition-colors">
+                      <div className="text-xs text-gray-600 mt-0.5">
                         {c.description}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={value}
-                        onChange={(e) => handleScoreChange(c.id, e.target.value)}
-                        className="w-20 bg-white border-2 border-[#175676]/30 rounded-lg px-2 py-1.5 text-sm text-right font-bold focus:outline-none focus:ring-2 focus:ring-[#ba324f] focus:border-[#ba324f] hover:border-[#175676] transition-all duration-300 shadow-sm"
-                        placeholder="0"
-                      />
-                      <span className="text-xs text-[#175676] font-semibold whitespace-nowrap">
-                        / {c.max}
+                    
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {[1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0].map((score) => (
+                        <button
+                          key={score}
+                          type="button"
+                          onClick={() => handleScoreChange("Best Paper", c.id, score.toString())}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all duration-200 ${
+                            numValue === score
+                              ? "bg-yellow-600 text-white shadow-lg scale-110"
+                              : "bg-white text-gray-700 hover:bg-yellow-600 hover:text-white hover:scale-105"
+                          }`}
+                        >
+                          {score.toFixed(1)}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => handleScoreChange("Best Paper", c.id, "")}
+                        className="px-2.5 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-700 hover:bg-red-200 transition-all duration-200"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    
+                    <div className="text-right">
+                      <span className="text-xs font-bold text-yellow-800">
+                        Selected: {value || "0"} / {c.max}
                       </span>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
-          <div className="mt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t-2 border-[#175676]/20">
-            <div className="text-xs text-gray-600 font-medium">
-              Scores are stored in a secure online database and used to
-              compute averages and rankings across all judges.
+          {/* Young Researcher Section */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3 pb-2 border-b-2 border-blue-400">
+              <div className="w-1 h-5 bg-blue-400 rounded-full"></div>
+              <h3 className="text-md font-bold text-blue-700">Young Researcher Award</h3>
             </div>
-            <button
-              type="button"
-              onClick={handleSubmitScore}
-              disabled={saving}
-              className="px-6 py-3 rounded-xl bg-[#ba324f] text-white text-sm font-bold hover:bg-[#ba324f]/90 hover:scale-105 hover:shadow-2xl transition-all duration-300 shadow-lg disabled:opacity-60 disabled:hover:scale-100 disabled:hover:shadow-none"
-            >
-              {saving ? "Saving..." : "Save Score"}
-            </button>
+            <div className="space-y-2">
+              {YOUNG_RESEARCHER_CRITERIA.map((c) => {
+                const value = youngResearcherScores[c.id] ?? "";
+                const numValue = value ? parseFloat(value) : 0;
+
+                return (
+                  <div
+                    key={c.id}
+                    className="group flex flex-col gap-2 bg-blue-50 border-2 border-blue-200 rounded-xl px-3 py-2 hover:border-blue-400 hover:shadow-lg transition-all duration-300"
+                  >
+                    <div className="flex-1">
+                      <div className="text-sm font-bold text-blue-800">
+                        {c.label}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-0.5">
+                        {c.description}
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {[1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0].map((score) => (
+                        <button
+                          key={score}
+                          type="button"
+                          onClick={() => handleScoreChange("Young Researcher", c.id, score.toString())}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all duration-200 ${
+                            numValue === score
+                              ? "bg-blue-600 text-white shadow-lg scale-110"
+                              : "bg-white text-gray-700 hover:bg-blue-600 hover:text-white hover:scale-105"
+                          }`}
+                        >
+                          {score.toFixed(1)}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => handleScoreChange("Young Researcher", c.id, "")}
+                        className="px-2.5 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-700 hover:bg-red-200 transition-all duration-200"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    
+                    <div className="text-right">
+                      <span className="text-xs font-bold text-blue-800">
+                        Selected: {value || "0"} / {c.max}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Single Save Button for Both Sections */}
+          <div className="mt-8 pt-6 border-t-2 border-gradient-to-r from-blue-200 via-purple-200 to-pink-200">
+            <div className="text-sm text-gray-600 font-semibold text-center mb-5 bg-blue-50/50 rounded-xl py-3 px-4">
+              Please complete all scores for both sections before saving.
+            </div>
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={handleSubmitAllScores}
+                disabled={savingBestPaper || savingYoungResearcher}
+                className="px-10 py-4 rounded-2xl bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white text-base font-bold hover:scale-105 hover:shadow-2xl hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 transition-all duration-300 shadow-xl disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
+              >
+                {(savingBestPaper || savingYoungResearcher) ? "Saving Both Scores..." : "💾 Save All Scores"}
+              </button>
+            </div>
+            <div className="text-xs text-gray-500 font-medium text-center mt-4">
+              This will save scores for both Best Paper and Young Researcher sections
+            </div>
           </div>
         </section>
 
-        {/* Right: Rankings */}
+        {/* Right: Participant Scoring History */}
         <section className="space-y-6">
-          {(["Best Paper", "Young Researcher"] as Section[]).map((section) => {
-            const rows = rankings[section];
-            return (
-              <div
-                key={section}
-                className="relative bg-white backdrop-blur-xl border-2 border-[#175676]/30 rounded-2xl p-4 sm:p-5 shadow-2xl hover:shadow-[#ba324f]/20 transition-all duration-300 overflow-hidden group"
-              >
-                {/* Decorative blur */}
-                <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-[#ba324f]/10 to-[#175676]/10 rounded-full blur-3xl -z-10 group-hover:scale-110 transition-transform duration-500"></div>
-                
-                <div className="flex items-center gap-2 mb-3 pb-3 border-b-2 border-[#175676]/20">
-                  <div className="w-1.5 h-6 bg-gradient-to-b from-[#ba324f] to-[#175676] rounded-full shadow-lg"></div>
-                  <h2 className="text-lg font-bold text-[#175676] flex-1">
-                    {section} Ranking
-                  </h2>
-                  <span className="text-xs font-bold text-[#175676] bg-[#175676]/10 px-3 py-1 rounded-full shadow-sm">
-                    {rows.length} scored
-                  </span>
-                </div>
-                {rows.length === 0 ? (
-                  <p className="text-sm text-[#175676] font-medium">
-                    No scores yet for this section.
-                  </p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs sm:text-sm border-collapse">
-                      <thead>
-                        <tr className="text-left text-[#175676] border-b-2 border-[#175676]/20 font-bold">
-                          <th className="py-2 pr-2">Rank</th>
-                          <th className="py-2 pr-2">Participant</th>
-                          <th className="py-2 pr-2">Paper title</th>
-                          <th className="py-2 pr-2 text-right">
-                            Avg / {maxTotal}
-                          </th>
-                          <th className="py-2 pr-2 text-right">
-                            Judges
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rows.map((row, idx) => (
-                          <tr
-                            key={row.participant.id}
-                            className="border-b border-[#175676]/10 last:border-0 hover:bg-[#175676]/5 hover:scale-[1.01] transition-all duration-300"
-                          >
-                            <td className="py-2 pr-2 align-top">
-                              <span
-                                className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold shadow-lg hover:scale-110 transition-transform duration-300 ${
-                                  idx === 0
-                                    ? "bg-gradient-to-br from-yellow-400 to-yellow-500 text-gray-900 animate-pulse"
-                                    : idx === 1
-                                    ? "bg-gradient-to-br from-gray-300 to-gray-400 text-gray-900"
-                                    : idx === 2
-                                    ? "bg-gradient-to-br from-amber-600 to-amber-700 text-white"
-                                    : "bg-[#175676]/20 text-[#175676]"
-                                }`}
-                              >
-                                {idx + 1}
-                              </span>
-                            </td>
-                            <td className="py-2 pr-2 align-top whitespace-nowrap">
-                              <div className="font-bold text-[#175676]">
-                                {row.participant.name}
-                              </div>
-                              <div className="text-[11px] text-gray-600 font-medium">
-                                {row.participant.id}
-                              </div>
-                            </td>
-                            <td className="py-2 pr-2 align-top">
-                              <div className="line-clamp-2 text-gray-700 font-medium">
-                                {row.participant.title}
-                              </div>
-                            </td>
-                            <td className="py-2 pr-2 align-top text-right font-bold text-[#ba324f]">
-                              {row.avgScore.toFixed(2)}
-                            </td>
-                            <td className="py-2 pr-2 align-top text-right text-[#175676] font-semibold">
-                              {row.judgeCount}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {/* Recent submissions mini-log */}
-          <div className="relative bg-white backdrop-blur-xl border-2 border-[#175676]/30 rounded-2xl p-4 sm:p-5 shadow-2xl hover:shadow-[#175676]/20 transition-all duration-300 overflow-hidden group">
-            {/* Decorative blur */}
-            <div className="absolute bottom-0 right-0 w-48 h-48 bg-gradient-to-br from-[#ba324f]/10 to-[#175676]/10 rounded-full blur-3xl -z-10 group-hover:scale-110 transition-transform duration-500"></div>
+          {/* All Participants Scores */}
+          <div className="relative bg-white/80 backdrop-blur-2xl border border-slate-200/60 rounded-3xl p-5 sm:p-6 shadow-2xl hover:shadow-purple-500/10 transition-all duration-500 overflow-hidden group">
+            <div className="absolute top-0 left-0 w-72 h-72 bg-gradient-to-br from-purple-400/10 via-pink-400/10 to-rose-400/10 rounded-full blur-3xl -z-10 group-hover:scale-125 transition-transform duration-700"></div>
             
-            <div className="flex items-center gap-2 mb-3 pb-2 border-b-2 border-[#175676]/20">
-              <div className="w-1.5 h-5 bg-gradient-to-b from-[#ba324f] to-[#175676] rounded-full shadow-lg"></div>
-              <h2 className="text-sm font-bold text-[#175676]">
-                Recent Submissions
+            <div className="flex items-center gap-3 mb-4 pb-4 border-b-2 border-gradient-to-r from-purple-200 to-pink-200">
+              <div className="w-1 h-8 bg-gradient-to-b from-purple-600 to-pink-600 rounded-full shadow-lg"></div>
+              <h2 className="text-xl font-bold bg-gradient-to-r from-purple-700 to-pink-700 bg-clip-text text-transparent flex-1">
+                Participant Scores
               </h2>
+              <span className="text-xs font-bold text-purple-700 bg-gradient-to-r from-purple-100 to-pink-100 px-4 py-1.5 rounded-full shadow-md">
+                {scoreRecords.length} total
+              </span>
             </div>
+
             {scoreRecords.length === 0 ? (
-              <p className="text-xs text-[#175676] font-medium">No scores recorded yet.</p>
+              <p className="text-sm text-[#175676] font-medium">
+                No scores recorded yet. Start scoring participants above.
+              </p>
             ) : (
-              <div className="max-h-60 overflow-y-auto space-y-2 text-xs">
-                {scoreRecords.slice(0, 20).map((record) => {
-                  const p = PARTICIPANTS.find(
-                    (x) => x.id === record.participantId
+              <div className="max-h-[calc(100vh-250px)] overflow-y-auto space-y-3">
+                {PARTICIPANTS.map((participant) => {
+                  const participantScores = scoreRecords.filter(
+                    (r) => r.participantId === participant.id
                   );
-                  if (!p) return null;
+                  
+                  if (participantScores.length === 0) return null;
+
+                  // Calculate separate averages for each section
+                  const bestPaperScores = participantScores.filter(s => s.section === "Best Paper");
+                  const youngResearcherScores = participantScores.filter(s => s.section === "Young Researcher");
+                  
+                  const bestPaperAvg = bestPaperScores.length > 0
+                    ? bestPaperScores.reduce((sum, r) => sum + r.total, 0) / bestPaperScores.length
+                    : 0;
+                  
+                  const youngResearcherAvg = youngResearcherScores.length > 0
+                    ? youngResearcherScores.reduce((sum, r) => sum + r.total, 0) / youngResearcherScores.length
+                    : 0;
+
                   return (
                     <div
-                      key={record.id}
-                      className="border-2 border-[#175676]/20 rounded-lg px-2.5 py-1.5 bg-white hover:border-[#ba324f] hover:shadow-md hover:scale-[1.02] transition-all duration-300"
+                      key={participant.id}
+                      className="border-2 border-[#175676]/20 rounded-xl p-3 bg-white hover:border-[#ba324f] hover:shadow-lg transition-all duration-300"
                     >
-                      <div className="flex justify-between gap-2">
-                        <span className="font-bold text-[#175676]">{record.judge}</span>
-                        <span className="text-[#175676] font-bold text-[10px] bg-[#175676]/10 px-1.5 py-0.5 rounded shadow-sm">
-                          {record.section}
-                        </span>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex-1">
+                          <div className="font-bold text-[#175676] text-sm">
+                            {participant.name}
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            {participant.id}
+                          </div>
+                        </div>
+                        <div className="flex gap-3">
+                          {bestPaperScores.length > 0 && (
+                            <div className="text-right">
+                              <div className="text-sm font-bold text-yellow-600">
+                                {bestPaperAvg.toFixed(2)}
+                              </div>
+                              <div className="text-[9px] text-gray-500">
+                                BP Avg
+                              </div>
+                            </div>
+                          )}
+                          {youngResearcherScores.length > 0 && (
+                            <div className="text-right">
+                              <div className="text-sm font-bold text-blue-600">
+                                {youngResearcherAvg.toFixed(2)}
+                              </div>
+                              <div className="text-[9px] text-gray-500">
+                                YR Avg
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-[#175676] font-medium">
-                        {p.id} – {p.name}
+
+                      <div className="text-xs text-gray-700 mb-2 line-clamp-1">
+                        {participant.title}
                       </div>
-                      <div className="flex justify-between text-gray-600 mt-0.5">
-                        <span className="truncate max-w-[14rem]">
-                          {p.title}
+
+                      {/* Individual judge scores */}
+                      <div className="space-y-1.5">
+                        {participantScores.map((score) => (
+                          <div
+                            key={score.id}
+                            className="flex items-center justify-between bg-gray-50 rounded-lg px-2 py-1.5 text-xs"
+                          >
+                            <div className="flex items-center gap-2 flex-1">
+                              <span className="font-semibold text-[#175676] truncate max-w-[120px]">
+                                {score.judge.split(' ').slice(-2).join(' ')}
+                              </span>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                                score.section === "Best Paper" 
+                                  ? "bg-yellow-100 text-yellow-700" 
+                                  : "bg-blue-100 text-blue-700"
+                              }`}>
+                                {score.section === "Best Paper" ? "BP" : "YR"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`font-bold ${
+                                score.section === "Best Paper" ? "text-yellow-600" : "text-blue-600"
+                              }`}>
+                                {score.total.toFixed(1)}
+                              </span>
+                              <span className="text-gray-500 text-[10px]">
+                                / {maxTotal}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-2 pt-2 border-t border-gray-200 text-[10px] text-gray-500 flex justify-between">
+                        <span>
+                          {bestPaperScores.length > 0 && `BP: ${bestPaperScores.length} judge${bestPaperScores.length > 1 ? 's' : ''}`}
+                          {bestPaperScores.length > 0 && youngResearcherScores.length > 0 && ' • '}
+                          {youngResearcherScores.length > 0 && `YR: ${youngResearcherScores.length} judge${youngResearcherScores.length > 1 ? 's' : ''}`}
                         </span>
-                        <span className="font-bold text-[#ba324f]">
-                          {record.total.toFixed(1)} / {maxTotal}
+                        <span className="font-semibold">
+                          Total: {participantScores.length} scores
                         </span>
                       </div>
                     </div>
@@ -853,12 +963,12 @@ export default function HomePage() {
         </section>
       </div>
 
-      <footer className="bg-gradient-to-r from-black via-gray-900 to-black px-6 py-4 text-[11px] flex flex-col sm:flex-row justify-between gap-2 shadow-2xl">
-        <span className="font-bold text-white">
-          <span className="text-white">ICCIET 2025</span> Judging Portal · International Conference on Computational Intelligence & Emerging Technologies
+      <footer className="bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 px-6 py-5 text-xs flex flex-col sm:flex-row justify-between gap-2 shadow-2xl border-t border-blue-800/30">
+        <span className="font-semibold text-white/90">
+          <span className="text-cyan-300 font-bold">ICCIET 2025</span> Judging Portal · International Conference on Computational Intelligence & Emerging Technologies
         </span>
-        <span className="font-bold text-white">
-          Scores synced via secure Supabase database
+        <span className="font-semibold text-white/90">
+          <span className="text-emerald-400">✓</span> Scores synced via secure Supabase database
         </span>
       </footer>
     </main>

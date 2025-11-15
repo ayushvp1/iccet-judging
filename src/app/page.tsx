@@ -452,16 +452,16 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 text-gray-900 flex flex-col">
-      <header className="relative bg-[#175676] px-6 py-5 flex flex-col gap-1 md:flex-row md:items-center md:justify-between shadow-2xl overflow-hidden backdrop-blur-xl">
+      <header className="relative bg-gradient-to-r from-black via-gray-900 to-black px-6 py-5 flex flex-col gap-1 md:flex-row md:items-center md:justify-between shadow-2xl overflow-hidden backdrop-blur-xl">
         {/* Animated decorative blurs */}
         <div className="absolute inset-0">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-[#175676]/40 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#175676]/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/10 rounded-full blur-2xl"></div>
+          <div className="absolute top-0 right-0 w-96 h-96 bg-gray-700/30 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-gray-800/40 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-2xl"></div>
         </div>
         
         {/* Glass overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-md"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-white/3 to-white/5 backdrop-blur-md"></div>
         
         {/* Content */}
         <div className="relative z-10 group">
@@ -794,7 +794,7 @@ export default function HomePage() {
         </section>
       </div>
 
-      <footer className="bg-gradient-to-r from-[#ba324f] to-[#175676] px-6 py-4 text-[11px] flex flex-col sm:flex-row justify-between gap-2 shadow-2xl">
+      <footer className="bg-gradient-to-r from-black via-gray-900 to-black px-6 py-4 text-[11px] flex flex-col sm:flex-row justify-between gap-2 shadow-2xl">
         <span className="font-bold text-white">
           <span className="text-white">ICCIET 2025</span> Judging Portal · International Conference on Computational Intelligence & Emerging Technologies
         </span>

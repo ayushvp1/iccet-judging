@@ -151,6 +151,10 @@ export default function HomePage() {
   const [savingBestPaper, setSavingBestPaper] = useState<boolean>(false);
   const [savingYoungResearcher, setSavingYoungResearcher] = useState<boolean>(false);
   const [clearing, setClearing] = useState<boolean>(false);
+  const [showAddParticipant, setShowAddParticipant] = useState<boolean>(false);
+  const [newParticipant, setNewParticipant] = useState({ id: "", name: "", title: "" });
+  const [showEditParticipants, setShowEditParticipants] = useState<boolean>(false);
+  const [editingParticipant, setEditingParticipant] = useState<Participant | null>(null);
 
   const maxTotal = 25; // Each section has 5 criteria × 5 points = 25 max
 
@@ -345,6 +349,68 @@ export default function HomePage() {
 
     setScoreRecords([]);
     alert("✅ All scores have been cleared successfully.");
+  };
+
+  const handleAddParticipant = () => {
+    if (!newParticipant.id || !newParticipant.name || !newParticipant.title) {
+      alert("Please fill in all fields.");
+      return;
+    }
+    
+    // Check if ID already exists
+    if (PARTICIPANTS.find(p => p.id === newParticipant.id)) {
+      alert("Participant ID already exists.");
+      return;
+    }
+
+    PARTICIPANTS.push({ ...newParticipant });
+    setNewParticipant({ id: "", name: "", title: "" });
+    setShowAddParticipant(false);
+    alert(`✅ Participant ${newParticipant.id} added successfully!`);
+  };
+
+  const handleOpenEditParticipants = () => {
+    const password = prompt("⚠️ Enter password to edit participants:");
+    if (password !== "1234") {
+      if (password !== null) {
+        alert("❌ Incorrect password. Access denied.");
+      }
+      return;
+    }
+    setShowEditParticipants(true);
+  };
+
+  const handleEditParticipant = (participant: Participant) => {
+    setEditingParticipant({ ...participant });
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingParticipant) return;
+    
+    if (!editingParticipant.name || !editingParticipant.title) {
+      alert("Please fill in all fields.");
+      return;
+    }
+
+    const index = PARTICIPANTS.findIndex(p => p.id === editingParticipant.id);
+    if (index !== -1) {
+      PARTICIPANTS[index] = { ...editingParticipant };
+      setEditingParticipant(null);
+      alert(`✅ Participant ${editingParticipant.id} updated successfully!`);
+    }
+  };
+
+  const handleDeleteParticipant = (participantId: string) => {
+    if (!confirm(`Delete participant ${participantId}? This cannot be undone!`)) return;
+    
+    const index = PARTICIPANTS.findIndex(p => p.id === participantId);
+    if (index !== -1) {
+      PARTICIPANTS.splice(index, 1);
+      alert(`✅ Participant ${participantId} deleted successfully!`);
+      // Force re-render
+      setShowEditParticipants(false);
+      setTimeout(() => setShowEditParticipants(true), 0);
+    }
   };
 
   const handleExportXLSX = () => {
@@ -617,8 +683,232 @@ export default function HomePage() {
           >
             {clearing ? "Clearing..." : "Clear all"}
           </button>
+          <button
+            onClick={() => setShowAddParticipant(true)}
+            className="text-xs px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 hover:scale-105 hover:shadow-2xl transition-all duration-300 font-bold shadow-lg"
+          >
+            + Add Participant
+          </button>
+          <button
+            onClick={handleOpenEditParticipants}
+            className="text-xs px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:from-amber-700 hover:to-orange-700 hover:scale-105 hover:shadow-2xl transition-all duration-300 font-bold shadow-lg"
+          >
+            ✏️ Edit Participants
+          </button>
         </div>
       </header>
+
+      {/* Add Participant Modal */}
+      {showAddParticipant && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-6 sm:p-8 relative">
+            <button
+              onClick={() => setShowAddParticipant(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold"
+            >
+              ×
+            </button>
+            
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-700 to-indigo-700 bg-clip-text text-transparent mb-6">
+              Add New Participant
+            </h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Participant ID (e.g., P28)
+                </label>
+                <input
+                  type="text"
+                  value={newParticipant.id}
+                  onChange={(e) => setNewParticipant({ ...newParticipant, id: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="P28"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Participant Name
+                </label>
+                <input
+                  type="text"
+                  value={newParticipant.name}
+                  onChange={(e) => setNewParticipant({ ...newParticipant, name: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="John Doe"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Research Paper Title
+                </label>
+                <textarea
+                  value={newParticipant.title}
+                  onChange={(e) => setNewParticipant({ ...newParticipant, title: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[100px]"
+                  placeholder="Enter the full research paper title..."
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleAddParticipant}
+                className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 font-bold shadow-lg hover:shadow-xl transition-all"
+              >
+                Add Participant
+              </button>
+              <button
+                onClick={() => setShowAddParticipant(false)}
+                className="px-6 py-3 rounded-xl bg-gray-200 text-gray-700 hover:bg-gray-300 font-bold transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Participants Modal */}
+      {showEditParticipants && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 sm:p-8 border-b border-gray-200">
+              <button
+                onClick={() => setShowEditParticipants(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold"
+              >
+                ×
+              </button>
+              
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-amber-700 to-orange-700 bg-clip-text text-transparent">
+                Edit Participants
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">Click on a participant to edit their details</p>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6 sm:p-8">
+              <div className="space-y-3">
+                {PARTICIPANTS.map((participant) => (
+                  <div
+                    key={participant.id}
+                    className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-4 hover:shadow-lg transition-all"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="text-sm font-bold text-amber-700 bg-amber-100 px-3 py-1 rounded-lg">
+                            {participant.id}
+                          </span>
+                          <span className="text-base font-bold text-gray-800">
+                            {participant.name}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700">{participant.title}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEditParticipant(participant)}
+                          className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-bold text-sm transition-all"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteParticipant(participant.id)}
+                          className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 font-bold text-sm transition-all"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="p-6 sm:p-8 border-t border-gray-200">
+              <button
+                onClick={() => setShowEditParticipants(false)}
+                className="w-full px-6 py-3 rounded-xl bg-gray-200 text-gray-700 hover:bg-gray-300 font-bold transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Single Participant Modal */}
+      {editingParticipant && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-6 sm:p-8 relative">
+            <button
+              onClick={() => setEditingParticipant(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold"
+            >
+              ×
+            </button>
+            
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-cyan-700 bg-clip-text text-transparent mb-6">
+              Edit Participant {editingParticipant.id}
+            </h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Participant ID
+                </label>
+                <input
+                  type="text"
+                  value={editingParticipant.id}
+                  disabled
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-100 text-gray-500 cursor-not-allowed"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Participant Name
+                </label>
+                <input
+                  type="text"
+                  value={editingParticipant.name}
+                  onChange={(e) => setEditingParticipant({ ...editingParticipant, name: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Research Paper Title
+                </label>
+                <textarea
+                  value={editingParticipant.title}
+                  onChange={(e) => setEditingParticipant({ ...editingParticipant, title: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleSaveEdit}
+                className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 font-bold shadow-lg hover:shadow-xl transition-all"
+              >
+                Save Changes
+              </button>
+              <button
+                onClick={() => setEditingParticipant(null)}
+                className="px-6 py-3 rounded-xl bg-gray-200 text-gray-700 hover:bg-gray-300 font-bold transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 px-4 sm:px-6 lg:px-10 py-6 grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
         {/* Left: Scoring form */}

@@ -15,7 +15,7 @@ type Participant = {
   title: string;
 };
 
-const PARTICIPANTS: Participant[] = [
+const STATIC_PARTICIPANTS: Participant[] = [
   { id: "P01", name: "Akhil Sukumar P", title: "Machine Learning–Enabled Framework for Adaptive Resource Allocation in Next-Generation Wireless Networks" },
   { id: "P02", name: "Rashmi R Nath", title: "Optimized Deep Learning with Wavelet Features for Multi-Class EEG-Based Alzheimer's Disease Detection" },
   { id: "P03", name: "Siji R", title: "The Role of Sign Language in Inclusive Education – Challenges and Technological Intervention" },
@@ -155,26 +155,31 @@ export default function HomePage() {
   const [newParticipant, setNewParticipant] = useState({ id: "", name: "", title: "" });
   const [showEditParticipants, setShowEditParticipants] = useState<boolean>(false);
   const [editingParticipant, setEditingParticipant] = useState<Participant | null>(null);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+
 
   const maxTotal = 25; // Each section has 5 criteria × 5 points = 25 max
 
-  // Load scores from Supabase on mount
+  // Load scores and participants from Supabase on mount
   useEffect(() => {
-    const fetchScores = async () => {
+    const fetchData = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("scores")
-        .select("*")
-        .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error loading scores:", error);
-        setLoading(false);
-        return;
-      }
+      const [scoresResult, participantsResult] = await Promise.all([
+        supabase
+          .from("scores")
+          .select("*")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("participants")
+          .select("*")
+          .order("id", { ascending: true }),
+      ]);
 
-      if (data) {
-        const mapped: ScoreRecord[] = data.map((row: any) => ({
+      if (scoresResult.error) {
+        console.error("Error loading scores:", scoresResult.error);
+      } else if (scoresResult.data) {
+        const mapped: ScoreRecord[] = scoresResult.data.map((row: any) => ({
           id: row.id,
           participantId: row.participant_id,
           judge: row.judge,
@@ -185,10 +190,25 @@ export default function HomePage() {
         }));
         setScoreRecords(mapped);
       }
+
+      if (participantsResult.error) {
+        console.error("Error loading participants:", participantsResult.error);
+        // Fallback to static list if DB not ready
+        setParticipants(STATIC_PARTICIPANTS);
+      } else if (participantsResult.data) {
+        setParticipants(
+          participantsResult.data.map((row: any) => ({
+            id: row.id,
+            name: row.name,
+            title: row.title,
+          }))
+        );
+      }
+
       setLoading(false);
     };
 
-    fetchScores();
+    fetchData();
   }, []);
 
   const handleScoreChange = (section: Section, criterionId: string, value: string) => {
@@ -351,19 +371,33 @@ export default function HomePage() {
     alert("✅ All scores have been cleared successfully.");
   };
 
-  const handleAddParticipant = () => {
+  const handleAddParticipant = async () => {
     if (!newParticipant.id || !newParticipant.name || !newParticipant.title) {
       alert("Please fill in all fields.");
       return;
     }
     
-    // Check if ID already exists
-    if (PARTICIPANTS.find(p => p.id === newParticipant.id)) {
+    // Check if ID already exists in current list
+    if (participants.find(p => p.id === newParticipant.id)) {
       alert("Participant ID already exists.");
       return;
     }
 
-    PARTICIPANTS.push({ ...newParticipant });
+    const { error } = await supabase
+      .from("participants")
+      .insert({
+        id: newParticipant.id,
+        name: newParticipant.name,
+        title: newParticipant.title,
+      });
+
+    if (error) {
+      console.error("Error adding participant:", error);
+      alert("Error adding participant. Please try again.");
+      return;
+    }
+
+    setParticipants((prev) => [...prev, { ...newParticipant }]);
     setNewParticipant({ id: "", name: "", title: "" });
     setShowAddParticipant(false);
     alert(`✅ Participant ${newParticipant.id} added successfully!`);
@@ -384,7 +418,7 @@ export default function HomePage() {
     setEditingParticipant({ ...participant });
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingParticipant) return;
     
     if (!editingParticipant.name || !editingParticipant.title) {
@@ -392,25 +426,45 @@ export default function HomePage() {
       return;
     }
 
-    const index = PARTICIPANTS.findIndex(p => p.id === editingParticipant.id);
-    if (index !== -1) {
-      PARTICIPANTS[index] = { ...editingParticipant };
-      setEditingParticipant(null);
-      alert(`✅ Participant ${editingParticipant.id} updated successfully!`);
+    const { error } = await supabase
+      .from("participants")
+      .update({
+        name: editingParticipant.name,
+        title: editingParticipant.title,
+      })
+      .eq("id", editingParticipant.id);
+
+    if (error) {
+      console.error("Error updating participant:", error);
+      alert("Error updating participant. Please try again.");
+      return;
     }
+
+    setParticipants((prev) =>
+      prev.map((p) =>
+        p.id === editingParticipant.id ? { ...editingParticipant } : p
+      )
+    );
+    setEditingParticipant(null);
+    alert(`✅ Participant ${editingParticipant.id} updated successfully!`);
   };
 
-  const handleDeleteParticipant = (participantId: string) => {
+  const handleDeleteParticipant = async (participantId: string) => {
     if (!confirm(`Delete participant ${participantId}? This cannot be undone!`)) return;
-    
-    const index = PARTICIPANTS.findIndex(p => p.id === participantId);
-    if (index !== -1) {
-      PARTICIPANTS.splice(index, 1);
-      alert(`✅ Participant ${participantId} deleted successfully!`);
-      // Force re-render
-      setShowEditParticipants(false);
-      setTimeout(() => setShowEditParticipants(true), 0);
+
+    const { error } = await supabase
+      .from("participants")
+      .delete()
+      .eq("id", participantId);
+
+    if (error) {
+      console.error("Error deleting participant:", error);
+      alert("Error deleting participant. Please try again.");
+      return;
     }
+
+    setParticipants((prev) => prev.filter((p) => p.id !== participantId));
+    alert(`✅ Participant ${participantId} deleted successfully!`);
   };
 
   const handleExportXLSX = () => {
@@ -434,7 +488,7 @@ export default function HomePage() {
 
       return Object.entries(perParticipant)
         .map(([participantId, { totalSum, count }]) => {
-          const participant = PARTICIPANTS.find((p) => p.id === participantId);
+          const participant = participants.find((p) => p.id === participantId);
           if (!participant) return null;
           return {
             participant,
@@ -462,7 +516,7 @@ export default function HomePage() {
     ];
 
     const scoresRows = scoreRecords.map((record) => {
-      const participant = PARTICIPANTS.find((p) => p.id === record.participantId);
+      const participant = participants.find((p) => p.id === record.participantId);
       const criteria =
         record.section === "Best Paper"
           ? BEST_PAPER_CRITERIA
@@ -609,7 +663,7 @@ export default function HomePage() {
 
       const rows: RankingRow[] = Object.entries(perParticipant)
         .map(([participantId, { totalSum, count }]) => {
-          const participant = PARTICIPANTS.find((p) => p.id === participantId);
+          const participant = participants.find((p) => p.id === participantId);
           if (!participant) return null;
           return {
             participant,
@@ -624,7 +678,7 @@ export default function HomePage() {
     });
 
     return result;
-  }, [scoreRecords]);
+  }, [scoreRecords, participants]);
 
   // Count distinct participants who have been scored
   const distinctParticipantsScored = useMemo(() => {
@@ -791,7 +845,7 @@ export default function HomePage() {
             
             <div className="flex-1 overflow-y-auto p-6 sm:p-8">
               <div className="space-y-3">
-                {PARTICIPANTS.map((participant) => (
+                {participants.map((participant) => (
                   <div
                     key={participant.id}
                     className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-4 hover:shadow-lg transition-all"
@@ -956,7 +1010,7 @@ export default function HomePage() {
                 onChange={(e) => setSelectedParticipantId(e.target.value)}
               >
                 <option value="">Select participant</option>
-                {PARTICIPANTS.map((p) => (
+                {participants.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.id} – {p.name}
                   </option>
@@ -969,7 +1023,7 @@ export default function HomePage() {
           {selectedParticipantId && (
             <div className="mb-6 text-sm bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 border-2 border-blue-200/60 rounded-2xl px-5 py-4 shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 backdrop-blur-sm">
               {(() => {
-                const p = PARTICIPANTS.find(
+                const p = participants.find(
                   (x) => x.id === selectedParticipantId
                 );
                 if (!p) return null;
@@ -1158,7 +1212,7 @@ export default function HomePage() {
               </div>
             ) : (
               <div className="max-h-[calc(100vh-250px)] overflow-y-auto space-y-3 pr-2 custom-scrollbar">
-                {PARTICIPANTS.map((participant) => {
+                {participants.map((participant) => {
                   const participantScores = scoreRecords.filter(
                     (r) => r.participantId === participant.id
                   );

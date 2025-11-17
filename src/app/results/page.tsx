@@ -12,36 +12,6 @@ type Participant = {
   title: string;
 };
 
-const PARTICIPANTS: Participant[] = [
-  { id: "P01", name: "Akhil Sukumar P", title: "Machine Learning–Enabled Framework for Adaptive Resource Allocation in Next-Generation Wireless Networks" },
-  { id: "P02", name: "Rashmi R Nath", title: "Optimized Deep Learning with Wavelet Features for Multi-Class EEG-Based Alzheimer's Disease Detection" },
-  { id: "P03", name: "Siji R", title: "The Role of Sign Language in Inclusive Education – Challenges and Technological Intervention" },
-  { id: "P04", name: "Chaithra Dinesh", title: "Integrating computational intelligence and medical imaging for lifestyle diseases management in India" },
-  { id: "P05", name: "Muhammad Puzhakkala Veettil", title: "Deep Learning and Hybrid Cryptographic Approaches for Securing Wireless Sensor Networks: A Comprehensive" },
-  { id: "P06", name: "Sandra Kv", title: "A Literature Review on the Evolution of IoT-Enabled Smart Home Automation for Secure, Scalable, and Intelligent Environments" },
-  { id: "P07", name: "Remya K", title: "A Review on Secure Machine-to-Machine Communication in Industrial IoT: Challenges and Computational Intelligence Approaches" },
-  { id: "P08", name: "Hridya G", title: "GlaucoNet: A Novel Multi-Scale Attention Network for Robust Glaucoma Classification from Noisy Fundus Images" },
-  { id: "P09", name: "Chandni P M", title: "A Comparative Analysis of Traditional Machine Learning and Deep Learning for Early Disease Detection from Leaf Textures" },
-  { id: "P10", name: "Joshna M", title: "AI for Green 6G: A Review of Energy-Aware Routing Techniques" },
-  { id: "P11", name: "Sreelakshmi Suresh", title: "A Literature Review on the Evolution of IoT-Enabled Smart Home Automation for Secure, Scalable, and Intelligent Environments" },
-  { id: "P12", name: "Saniya Sudhan", title: "A Literature Review on the Evolution of IoT-Enabled Smart Home Automation for Secure, Scalable, and Intelligent Environments" },
-  { id: "P13", name: "Deepnitha Ramachandran", title: "A Literature Review on the Evolution of IoT-Enabled Smart Home Automation for Secure, Scalable, and Intelligent Environments" },
-  { id: "P14", name: "Veena Vijayan", title: "MULTI-OBJECTIVE DRAGONFLY OPTIMIZATION ALGORITHM (MODOA) BASED VM PLACEMENT STRATEGY TO MITIGATE CO-RESIDENT ATTACKS" },
-  { id: "P15", name: "Akshara P", title: "BFLBreacher: Exposing Privacy Vulnerabilities in Federated Learning" },
-  { id: "P16", name: "Shayana P", title: "Smart organ donation and disease management system: an explainable AI Literature Review" },
-  { id: "P17", name: "Anulal P", title: "DeepReveal: An Explainable AI Framework for Robust Deepfake Detection" },
-  { id: "P18", name: "Ayush V P", title: "YOLOv8-GSAF: Lightweight Ghost and SimAM Enhanced Road Damage Detection Framework" },
-  { id: "P19", name: "Sainadh V", title: "Traffic sign detection using yolov8" },
-  { id: "P20", name: "Govind Hans V", title: "Enhancing Prediction on Imbalanced Medical Datasets: An Evaluation of Gradient Boosting Models with the SMOTE-MRS Technique" },
-  { id: "P21", name: "Amaya M", title: "Enhancing Eye Disease Classification with Transformer-Based Vision Model" },
-  { id: "P22", name: "Asher Vargheese K", title: "Transformer-Integrated YOLO-Air with Super-Resolution Preprocessing for Enhanced Small Object Detection in UAV Imagery" },
-  { id: "P23", name: "Sourav K", title: "Hybrid Weather forecasting using Machine Learning and Traditional Forecasting techniques" },
-  { id: "P24", name: "Aravind P", title: "Stock market price prediction using LSTM and Random forest and sentimental analysis via FinBERT" },
-  { id: "P25", name: "Ashitha P Sujith", title: "ENHANCED ALZHEIMER'S DETECTION USING VISION TRANSFORMERS AND EXPLAINABLE AI TECHNIQUES ON PREPROCESSED MRI SCANS" },
-  { id: "P26", name: "Gokul Krishna A M", title: "Research Paper Title" },
-  { id: "P27", name: "Fathima Safna C P", title: "Beyond Pixels: A Multi-Sensor Fusion Approach for Intelligent Wildfire Detection Using YOLO Architectures" },
-];
-
 type ScoreRecord = {
   id: string;
   participantId: string;
@@ -62,23 +32,27 @@ type RankingRow = {
 export default function ResultsPage() {
   const [scoreRecords, setScoreRecords] = useState<ScoreRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [participants, setParticipants] = useState<Participant[]>([]);
 
   useEffect(() => {
-    const fetchScores = async () => {
+    const fetchData = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("scores")
-        .select("*")
-        .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error loading scores:", error);
-        setLoading(false);
-        return;
-      }
+      const [scoresResult, participantsResult] = await Promise.all([
+        supabase
+          .from("scores")
+          .select("*")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("participants")
+          .select("*")
+          .order("id", { ascending: true }),
+      ]);
 
-      if (data) {
-        const mapped: ScoreRecord[] = data.map((row: any) => ({
+      if (scoresResult.error) {
+        console.error("Error loading scores:", scoresResult.error);
+      } else if (scoresResult.data) {
+        const mapped: ScoreRecord[] = scoresResult.data.map((row: any) => ({
           id: row.id,
           participantId: row.participant_id,
           judge: row.judge,
@@ -89,10 +63,23 @@ export default function ResultsPage() {
         }));
         setScoreRecords(mapped);
       }
+
+      if (participantsResult.error) {
+        console.error("Error loading participants:", participantsResult.error);
+      } else if (participantsResult.data) {
+        setParticipants(
+          participantsResult.data.map((row: any) => ({
+            id: row.id,
+            name: row.name,
+            title: row.title,
+          }))
+        );
+      }
+
       setLoading(false);
     };
 
-    fetchScores();
+    fetchData();
   }, []);
 
   const getRankings = (section: Section): RankingRow[] => {
@@ -116,7 +103,7 @@ export default function ResultsPage() {
 
     const rows: RankingRow[] = Object.entries(perParticipant)
       .map(([participantId, { totalSum, count, scores }]) => {
-        const participant = PARTICIPANTS.find((p) => p.id === participantId);
+        const participant = participants.find((p) => p.id === participantId);
         if (!participant) return null;
         return {
           participant,

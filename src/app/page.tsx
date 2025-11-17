@@ -739,15 +739,15 @@ export default function HomePage() {
           </button>
           <button
             onClick={() => setShowAddParticipant(true)}
-            className="text-xs px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 hover:scale-105 hover:shadow-2xl transition-all duration-300 font-bold shadow-lg"
+            className="text-xs px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 hover:scale-105 hover:shadow-2xl transition-all duration-300 font-bold shadow-lg"
           >
-            + Add Participant
+            Add Participant
           </button>
           <button
             onClick={handleOpenEditParticipants}
             className="text-xs px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:from-amber-700 hover:to-orange-700 hover:scale-105 hover:shadow-2xl transition-all duration-300 font-bold shadow-lg"
           >
-            ✏️ Edit Participants
+            Edit Participants
           </button>
         </div>
       </header>
@@ -763,7 +763,7 @@ export default function HomePage() {
               ×
             </button>
             
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-700 to-indigo-700 bg-clip-text text-transparent mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
               Add New Participant
             </h2>
             
@@ -810,7 +810,7 @@ export default function HomePage() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={handleAddParticipant}
-                className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 font-bold shadow-lg hover:shadow-xl transition-all"
+                className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 font-bold shadow-lg hover:shadow-xl transition-all"
               >
                 Add Participant
               </button>

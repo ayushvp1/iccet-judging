@@ -19,6 +19,7 @@ type ScoreRecord = {
   section: Section;
   scores: Record<string, number>;
   total: number;
+  remark?: string;
   createdAt: string;
 };
 
@@ -26,7 +27,7 @@ type RankingRow = {
   participant: Participant;
   avgScore: number;
   judgeCount: number;
-  allScores: { judge: string; total: number }[];
+  allScores: { judge: string; total: number; remark?: string }[];
 };
 
 export default function ResultsPage() {
@@ -59,6 +60,7 @@ export default function ResultsPage() {
           section: row.section as Section,
           scores: row.scores || {},
           total: Number(row.total),
+          remark: row.remark || "",
           createdAt: row.created_at,
         }));
         setScoreRecords(mapped);
@@ -98,6 +100,7 @@ export default function ResultsPage() {
       perParticipant[record.participantId].scores.push({
         judge: record.judge,
         total: record.total,
+        remark: record.remark,
       });
     }
 
@@ -236,13 +239,13 @@ export default function ResultsPage() {
         {/* Complete Rankings */}
         {(["Best Paper", "Young Researcher"] as Section[]).map((section) => {
           const rankings = section === "Best Paper" ? bestPaperRankings : youngResearcherRankings;
-          
+
           return (
             <section key={section} className="bg-white rounded-2xl p-6 shadow-xl border-2 border-[#175676]/20">
               <h2 className="text-2xl font-bold text-[#175676] mb-6 pb-3 border-b-2 border-[#175676]/20">
                 {section} - Complete Rankings
               </h2>
-              
+
               {rankings.length === 0 ? (
                 <p className="text-gray-600">No scores available for this category yet.</p>
               ) : (
@@ -250,28 +253,26 @@ export default function ResultsPage() {
                   {rankings.map((row, idx) => (
                     <div
                       key={row.participant.id}
-                      className={`border-2 rounded-xl p-4 transition-all duration-300 hover:shadow-lg ${
-                        idx === 0
+                      className={`border-2 rounded-xl p-4 transition-all duration-300 hover:shadow-lg ${idx === 0
                           ? "border-yellow-400 bg-yellow-50"
                           : idx === 1
-                          ? "border-gray-400 bg-gray-50"
-                          : idx === 2
-                          ? "border-amber-600 bg-amber-50"
-                          : "border-gray-200 bg-white hover:border-[#175676]"
-                      }`}
+                            ? "border-gray-400 bg-gray-50"
+                            : idx === 2
+                              ? "border-amber-600 bg-amber-50"
+                              : "border-gray-200 bg-white hover:border-[#175676]"
+                        }`}
                     >
                       <div className="flex flex-col md:flex-row md:items-center gap-4">
                         <div className="flex items-center gap-4 flex-1">
                           <div
-                            className={`flex items-center justify-center w-12 h-12 rounded-full text-lg font-bold shadow-lg ${
-                              idx === 0
+                            className={`flex items-center justify-center w-12 h-12 rounded-full text-lg font-bold shadow-lg ${idx === 0
                                 ? "bg-gradient-to-br from-yellow-400 to-yellow-500 text-gray-900"
                                 : idx === 1
-                                ? "bg-gradient-to-br from-gray-300 to-gray-400 text-gray-900"
-                                : idx === 2
-                                ? "bg-gradient-to-br from-amber-600 to-amber-700 text-white"
-                                : "bg-[#175676]/20 text-[#175676]"
-                            }`}
+                                  ? "bg-gradient-to-br from-gray-300 to-gray-400 text-gray-900"
+                                  : idx === 2
+                                    ? "bg-gradient-to-br from-amber-600 to-amber-700 text-white"
+                                    : "bg-[#175676]/20 text-[#175676]"
+                              }`}
                           >
                             {idx + 1}
                           </div>
@@ -299,7 +300,7 @@ export default function ResultsPage() {
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Individual Judge Scores */}
                       <div className="mt-4 pt-4 border-t border-gray-200">
                         <div className="text-xs font-bold text-gray-600 mb-2">Individual Scores:</div>
@@ -313,6 +314,11 @@ export default function ResultsPage() {
                               <div className="text-sm font-bold text-[#175676]">
                                 {score.total.toFixed(1)} / 25
                               </div>
+                              {score.remark && (
+                                <div className="mt-1 text-[10px] text-gray-600 italic bg-white/70 px-2 py-1 rounded border border-gray-100 line-clamp-3">
+                                  "{score.remark}"
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>

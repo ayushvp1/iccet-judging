@@ -138,6 +138,7 @@ type ScoreRecord = {
   section: Section;
   scores: Record<string, number>; // criterionId -> score
   total: number;
+  remark?: string;
   createdAt: string;
 };
 
@@ -146,6 +147,7 @@ export default function HomePage() {
   const [selectedParticipantId, setSelectedParticipantId] = useState<string>("");
   const [bestPaperScores, setBestPaperScores] = useState<Record<string, string>>({});
   const [youngResearcherScores, setYoungResearcherScores] = useState<Record<string, string>>({});
+  const [remark, setRemark] = useState<string>("");
   const [scoreRecords, setScoreRecords] = useState<ScoreRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [savingBestPaper, setSavingBestPaper] = useState<boolean>(false);
@@ -186,6 +188,7 @@ export default function HomePage() {
           section: row.section as Section,
           scores: row.scores || {},
           total: Number(row.total),
+          remark: row.remark || "",
           createdAt: row.created_at,
         }));
         setScoreRecords(mapped);
@@ -276,27 +279,33 @@ export default function HomePage() {
     setSavingYoungResearcher(true);
 
     // Save both scores
+    const bestPaperInsert: any = {
+      participant_id: selectedParticipantId,
+      judge: selectedJudge,
+      section: "Best Paper",
+      scores: bestPaperNumericScores,
+      total: bestPaperTotal,
+    };
+    if (remark) bestPaperInsert.remark = remark;
+
     const { data: bestPaperData, error: bestPaperError } = await supabase
       .from("scores")
-      .insert({
-        participant_id: selectedParticipantId,
-        judge: selectedJudge,
-        section: "Best Paper",
-        scores: bestPaperNumericScores,
-        total: bestPaperTotal,
-      })
+      .insert(bestPaperInsert)
       .select("*")
       .single();
 
+    const youngResearcherInsert: any = {
+      participant_id: selectedParticipantId,
+      judge: selectedJudge,
+      section: "Young Researcher",
+      scores: youngResearcherNumericScores,
+      total: youngResearcherTotal,
+    };
+    if (remark) youngResearcherInsert.remark = remark;
+
     const { data: youngResearcherData, error: youngResearcherError } = await supabase
       .from("scores")
-      .insert({
-        participant_id: selectedParticipantId,
-        judge: selectedJudge,
-        section: "Young Researcher",
-        scores: youngResearcherNumericScores,
-        total: youngResearcherTotal,
-      })
+      .insert(youngResearcherInsert)
       .select("*")
       .single();
 
@@ -305,13 +314,16 @@ export default function HomePage() {
 
     if (bestPaperError || youngResearcherError) {
       console.error("Error saving scores:", bestPaperError, youngResearcherError);
-      alert(`Error saving scores. Please try again.`);
+      const errorMsg = bestPaperError?.message || youngResearcherError?.message || "Unknown error";
+      const errorDetails = bestPaperError?.details || youngResearcherError?.details || "";
+      console.error("Error details:", errorMsg, errorDetails);
+      alert(`Error saving scores: ${errorMsg}\n\nPlease check the console for more details.`);
       return;
     }
 
     // Add both records to the list
     const newRecords: ScoreRecord[] = [];
-    
+
     if (bestPaperData) {
       newRecords.push({
         id: bestPaperData.id,
@@ -320,6 +332,7 @@ export default function HomePage() {
         section: bestPaperData.section as Section,
         scores: bestPaperData.scores || {},
         total: Number(bestPaperData.total),
+        remark: bestPaperData.remark || "",
         createdAt: bestPaperData.created_at,
       });
     }
@@ -332,16 +345,18 @@ export default function HomePage() {
         section: youngResearcherData.section as Section,
         scores: youngResearcherData.scores || {},
         total: Number(youngResearcherData.total),
+        remark: youngResearcherData.remark || "",
         createdAt: youngResearcherData.created_at,
       });
     }
 
     setScoreRecords((prev) => [...newRecords, ...prev]);
-    
+
     // Clear all scores
     setBestPaperScores({});
     setYoungResearcherScores({});
-    
+    setRemark("");
+
     alert("✅ Both scores saved successfully!");
   };
 
@@ -356,7 +371,7 @@ export default function HomePage() {
     }
 
     if (!confirm("Clear ALL scores from the online database? This cannot be undone!")) return;
-    
+
     setClearing(true);
     const { error } = await supabase.from("scores").delete().neq("id", "");
     setClearing(false);
@@ -376,7 +391,7 @@ export default function HomePage() {
       alert("Please fill in all fields.");
       return;
     }
-    
+
     // Check if ID already exists in current list
     if (participants.find(p => p.id === newParticipant.id)) {
       alert("Participant ID already exists.");
@@ -420,7 +435,7 @@ export default function HomePage() {
 
   const handleSaveEdit = async () => {
     if (!editingParticipant) return;
-    
+
     if (!editingParticipant.name || !editingParticipant.title) {
       alert("Please fill in all fields.");
       return;
@@ -512,6 +527,7 @@ export default function HomePage() {
       "Section",
       ...BEST_PAPER_CRITERIA.map((c) => c.label),
       "Total Score",
+      "Remark",
       "Submitted At",
     ];
 
@@ -530,6 +546,7 @@ export default function HomePage() {
         record.section,
         ...criteria.map((c) => record.scores[c.id] || 0),
         record.total,
+        record.remark || "",
         new Date(record.createdAt).toLocaleString(),
       ];
     });
@@ -559,7 +576,7 @@ export default function HomePage() {
 
     // Add Rankings Section
     html += '<h2>ICCIET 2025 - FINAL RANKINGS</h2>';
-    
+
     // Best Paper Rankings
     html += '<h3>Best Paper Award - Rankings</h3>';
     html += '<table>';
@@ -597,7 +614,7 @@ export default function HomePage() {
     // Add Detailed Scores Section
     html += '<h2>DETAILED SCORES BY JUDGE</h2>';
     html += '<table>';
-    
+
     [scoresHeaders, ...scoresRows].forEach((row, idx) => {
       html += '<tr>';
       row.forEach((cell, colIdx) => {
@@ -611,13 +628,13 @@ export default function HomePage() {
           else if (colIdx === 4) className = 'section';
           else if (colIdx >= 5 && colIdx < row.length - 2) className = 'score';
           else if (colIdx === row.length - 2) className = 'total';
-          
+
           html += `<td class="${className}">${String(cell).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`;
         }
       });
       html += '</tr>';
     });
-    
+
     html += '</table>';
     html += '</body></html>';
 
@@ -697,10 +714,10 @@ export default function HomePage() {
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-cyan-400/10 rounded-full blur-2xl"></div>
         </div>
-        
+
         {/* Glass overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-white/3 to-white/5 backdrop-blur-sm"></div>
-        
+
         {/* Content */}
         <div className="relative z-10 group">
           <h1 className="text-xl md:text-3xl font-bold tracking-tight drop-shadow-2xl transition-all duration-300 group-hover:scale-[1.02] bg-gradient-to-r from-white to-blue-50 px-5 py-3 rounded-2xl inline-block shadow-xl">
@@ -762,11 +779,11 @@ export default function HomePage() {
             >
               ×
             </button>
-            
+
             <h2 className="text-2xl font-bold text-gray-900 mb-6">
               Add New Participant
             </h2>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">
@@ -780,7 +797,7 @@ export default function HomePage() {
                   placeholder="P28"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">
                   Participant Name
@@ -793,7 +810,7 @@ export default function HomePage() {
                   placeholder="John Doe"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">
                   Research Paper Title
@@ -806,7 +823,7 @@ export default function HomePage() {
                 />
               </div>
             </div>
-            
+
             <div className="flex gap-3 mt-6">
               <button
                 onClick={handleAddParticipant}
@@ -836,13 +853,13 @@ export default function HomePage() {
               >
                 ×
               </button>
-              
+
               <h2 className="text-2xl font-bold bg-gradient-to-r from-amber-700 to-orange-700 bg-clip-text text-transparent">
                 Edit Participants
               </h2>
               <p className="text-sm text-gray-600 mt-1">Click on a participant to edit their details</p>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto p-6 sm:p-8">
               <div className="space-y-3">
                 {participants.map((participant) => (
@@ -881,7 +898,7 @@ export default function HomePage() {
                 ))}
               </div>
             </div>
-            
+
             <div className="p-6 sm:p-8 border-t border-gray-200">
               <button
                 onClick={() => setShowEditParticipants(false)}
@@ -904,11 +921,11 @@ export default function HomePage() {
             >
               ×
             </button>
-            
+
             <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-cyan-700 bg-clip-text text-transparent mb-6">
               Edit Participant {editingParticipant.id}
             </h2>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">
@@ -921,7 +938,7 @@ export default function HomePage() {
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-100 text-gray-500 cursor-not-allowed"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">
                   Participant Name
@@ -933,7 +950,7 @@ export default function HomePage() {
                   className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">
                   Research Paper Title
@@ -945,7 +962,7 @@ export default function HomePage() {
                 />
               </div>
             </div>
-            
+
             <div className="flex gap-3 mt-6">
               <button
                 onClick={handleSaveEdit}
@@ -970,7 +987,7 @@ export default function HomePage() {
           {/* Decorative blur */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-blue-400/10 via-purple-400/10 to-pink-400/10 rounded-full blur-3xl -z-10 group-hover:scale-125 transition-transform duration-700"></div>
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-cyan-400/10 to-blue-400/10 rounded-full blur-3xl -z-10 group-hover:scale-125 transition-transform duration-700"></div>
-          
+
           <div className="flex items-center gap-3 mb-5 pb-4 border-b-2 border-gradient-to-r from-blue-200 via-purple-200 to-pink-200">
             <div className="w-1 h-8 bg-gradient-to-b from-blue-600 via-purple-600 to-pink-600 rounded-full shadow-lg"></div>
             <h2 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent flex-1">
@@ -1061,18 +1078,17 @@ export default function HomePage() {
                         {c.description}
                       </div>
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-1.5 mt-1">
                       {[1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0].map((score) => (
                         <button
                           key={score}
                           type="button"
                           onClick={() => handleScoreChange("Best Paper", c.id, score.toString())}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all duration-200 ${
-                            numValue === score
-                              ? "bg-yellow-600 text-white shadow-lg scale-110"
-                              : "bg-white text-gray-700 hover:bg-yellow-600 hover:text-white hover:scale-105"
-                          }`}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all duration-200 ${numValue === score
+                            ? "bg-yellow-600 text-white shadow-lg scale-110"
+                            : "bg-white text-gray-700 hover:bg-yellow-600 hover:text-white hover:scale-105"
+                            }`}
                         >
                           {score.toFixed(1)}
                         </button>
@@ -1085,7 +1101,7 @@ export default function HomePage() {
                         Clear
                       </button>
                     </div>
-                    
+
                     <div className="text-right">
                       <span className="text-xs font-bold text-yellow-800">
                         Selected: {value || "0"} / {c.max}
@@ -1121,18 +1137,17 @@ export default function HomePage() {
                         {c.description}
                       </div>
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-1.5 mt-1">
                       {[1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0].map((score) => (
                         <button
                           key={score}
                           type="button"
                           onClick={() => handleScoreChange("Young Researcher", c.id, score.toString())}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all duration-200 ${
-                            numValue === score
-                              ? "bg-blue-600 text-white shadow-lg scale-110"
-                              : "bg-white text-gray-700 hover:bg-blue-600 hover:text-white hover:scale-105"
-                          }`}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all duration-200 ${numValue === score
+                            ? "bg-blue-600 text-white shadow-lg scale-110"
+                            : "bg-white text-gray-700 hover:bg-blue-600 hover:text-white hover:scale-105"
+                            }`}
                         >
                           {score.toFixed(1)}
                         </button>
@@ -1145,7 +1160,7 @@ export default function HomePage() {
                         Clear
                       </button>
                     </div>
-                    
+
                     <div className="text-right">
                       <span className="text-xs font-bold text-blue-800">
                         Selected: {value || "0"} / {c.max}
@@ -1156,6 +1171,21 @@ export default function HomePage() {
               })}
             </div>
           </div>
+
+          {/* Remarks Section - TEMPORARILY DISABLED */}
+          {/* Uncomment after running: ALTER TABLE scores ADD COLUMN IF NOT EXISTS remark TEXT; */}
+          {<div className="mb-6">
+            <div className="flex items-center gap-2 mb-3 pb-2 border-b-2 border-purple-400">
+              <div className="w-1 h-5 bg-purple-400 rounded-full"></div>
+              <h3 className="text-md font-bold text-purple-700">Remarks (Optional)</h3>
+            </div>
+            <textarea
+              value={remark}
+              onChange={(e) => setRemark(e.target.value)}
+              className="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[80px] text-sm"
+              placeholder="Enter any additional comments or feedback..."
+            />
+          </div>}
 
           {/* Single Save Button for Both Sections */}
           <div className="mt-8 pt-6 border-t-2 border-gradient-to-r from-blue-200 via-purple-200 to-pink-200">
@@ -1186,7 +1216,7 @@ export default function HomePage() {
             <div className="absolute top-0 left-0 w-72 h-72 bg-gradient-to-br from-blue-300/20 via-cyan-300/15 to-slate-300/20 rounded-full blur-3xl -z-10 group-hover:scale-125 transition-transform duration-700 animate-pulse"></div>
             <div className="absolute bottom-0 right-0 w-64 h-64 bg-gradient-to-tl from-cyan-300/15 via-blue-300/10 to-slate-300/15 rounded-full blur-3xl -z-10 group-hover:scale-125 transition-transform duration-700 animate-pulse" style={{ animationDelay: '1s' }}></div>
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-blue-200/10 to-cyan-200/10 rounded-full blur-3xl -z-10"></div>
-            
+
             <div className="flex items-center gap-3 mb-4 pb-4 border-b-2 border-gradient-to-r from-blue-200 to-cyan-200">
               <div className="w-1 h-8 bg-gradient-to-b from-blue-600 to-cyan-600 rounded-full shadow-lg"></div>
               <h2 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-cyan-700 bg-clip-text text-transparent flex-1">
@@ -1216,17 +1246,17 @@ export default function HomePage() {
                   const participantScores = scoreRecords.filter(
                     (r) => r.participantId === participant.id
                   );
-                  
+
                   if (participantScores.length === 0) return null;
 
                   // Calculate separate averages for each section
                   const bestPaperScores = participantScores.filter(s => s.section === "Best Paper");
                   const youngResearcherScores = participantScores.filter(s => s.section === "Young Researcher");
-                  
+
                   const bestPaperAvg = bestPaperScores.length > 0
                     ? bestPaperScores.reduce((sum, r) => sum + r.total, 0) / bestPaperScores.length
                     : 0;
-                  
+
                   const youngResearcherAvg = youngResearcherScores.length > 0
                     ? youngResearcherScores.reduce((sum, r) => sum + r.total, 0) / youngResearcherScores.length
                     : 0;
@@ -1239,7 +1269,7 @@ export default function HomePage() {
                       {/* Decorative gradient overlays */}
                       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/25 via-cyan-400/20 to-slate-400/25 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                       <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-cyan-400/20 to-blue-400/15 rounded-full blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
-                      
+
                       <div className="relative z-10">
                         <div className="flex items-start justify-between gap-3 mb-3">
                           <div className="flex-1">
@@ -1285,38 +1315,40 @@ export default function HomePage() {
                             Judge Scores ({participantScores.length})
                           </div>
                           {participantScores.map((score) => (
-                            <div
-                              key={score.id}
-                              className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs shadow-sm border transition-all duration-200 hover:scale-[1.02] ${
-                                score.section === "Best Paper"
+                            <div key={score.id} className="flex flex-col gap-1">
+                              <div
+                                className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs shadow-sm border transition-all duration-200 hover:scale-[1.02] ${score.section === "Best Paper"
                                   ? "bg-gradient-to-r from-yellow-50 to-yellow-100/50 border-yellow-200 hover:border-yellow-400"
                                   : "bg-gradient-to-r from-blue-50 to-blue-100/50 border-blue-200 hover:border-blue-400"
-                              }`}
-                            >
-                              <div className="flex items-center gap-2 flex-1">
-                                <span className={`font-bold truncate max-w-[140px] ${
-                                  score.section === "Best Paper" ? "text-yellow-800" : "text-blue-800"
-                                }`}>
-                                  {score.judge.split(' ').slice(-2).join(' ')}
-                                </span>
-                                <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm ${
-                                  score.section === "Best Paper" 
-                                    ? "bg-yellow-400 text-yellow-900" 
+                                  }`}
+                              >
+                                <div className="flex items-center gap-2 flex-1">
+                                  <span className={`font-bold truncate max-w-[140px] ${score.section === "Best Paper" ? "text-yellow-800" : "text-blue-800"
+                                    }`}>
+                                    {score.judge.split(' ').slice(-2).join(' ')}
+                                  </span>
+                                  <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm ${score.section === "Best Paper"
+                                    ? "bg-yellow-400 text-yellow-900"
                                     : "bg-blue-400 text-blue-900"
-                                }`}>
-                                  {score.section === "Best Paper" ? "BP" : "YR"}
-                                </span>
+                                    }`}>
+                                    {score.section === "Best Paper" ? "BP" : "YR"}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`text-lg font-bold ${score.section === "Best Paper" ? "text-yellow-700" : "text-blue-700"
+                                    }`}>
+                                    {score.total.toFixed(1)}
+                                  </span>
+                                  <span className="text-gray-400 text-[10px] font-medium">
+                                    / {maxTotal}
+                                  </span>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-1.5">
-                                <span className={`text-lg font-bold ${
-                                  score.section === "Best Paper" ? "text-yellow-700" : "text-blue-700"
-                                }`}>
-                                  {score.total.toFixed(1)}
-                                </span>
-                                <span className="text-gray-400 text-[10px] font-medium">
-                                  / {maxTotal}
-                                </span>
-                              </div>
+                              {score.remark && (
+                                <div className="ml-2 text-[10px] text-gray-600 italic bg-white/50 px-2 py-1 rounded border border-gray-100">
+                                  "{score.remark}"
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>

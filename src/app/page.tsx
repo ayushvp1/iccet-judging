@@ -495,10 +495,15 @@ export default function HomePage() {
       for (const record of scoreRecords) {
         if (record.section !== section) continue;
         if (!perParticipant[record.participantId]) {
-          perParticipant[record.participantId] = { totalSum: 0, count: 0 };
+          perParticipant[record.participantId] = { totalSum: 0, count: 0, remark: undefined };
         }
         perParticipant[record.participantId].totalSum += record.total;
         perParticipant[record.participantId].count += 1;
+
+        // Capture a single remark for this participant in this section (first non-empty)
+        if (!perParticipant[record.participantId].remark && record.remark) {
+          perParticipant[record.participantId].remark = record.remark;
+        }
       }
 
       return Object.entries(perParticipant)
@@ -666,7 +671,11 @@ export default function HomePage() {
     (["Best Paper", "Young Researcher"] as Section[]).forEach((section) => {
       const perParticipant: Record<
         string,
-        { totalSum: number; count: number }
+        {
+          totalSum: number;
+          count: number;
+          remark?: string;
+        }
       > = {};
 
       for (const record of scoreRecords) {
@@ -678,14 +687,15 @@ export default function HomePage() {
         perParticipant[record.participantId].count += 1;
       }
 
-      const rows: RankingRow[] = Object.entries(perParticipant)
-        .map(([participantId, { totalSum, count }]) => {
+      const rows: (RankingRow & { remark?: string })[] = Object.entries(perParticipant)
+        .map(([participantId, { totalSum, count, remark }]) => {
           const participant = participants.find((p) => p.id === participantId);
           if (!participant) return null;
           return {
             participant,
             avgScore: totalSum / count,
             judgeCount: count,
+            remark,
           };
         })
         .filter((row): row is RankingRow => row !== null)
@@ -1314,39 +1324,58 @@ export default function HomePage() {
                           <div className="text-[10px] uppercase tracking-wider text-blue-600 font-bold mb-2">
                             Judge Scores ({participantScores.length})
                           </div>
-                          {participantScores.map((score) => (
-                            <div key={score.id} className="flex flex-col gap-1">
-                              <div
-                                className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs shadow-sm border transition-all duration-200 hover:scale-[1.02] ${score.section === "Best Paper"
-                                  ? "bg-gradient-to-r from-yellow-50 to-yellow-100/50 border-yellow-200 hover:border-yellow-400"
-                                  : "bg-gradient-to-r from-blue-50 to-blue-100/50 border-blue-200 hover:border-blue-400"
-                                  }`}
-                              >
-                                <div className="flex items-center gap-2 flex-1">
-                                  <span className={`font-bold truncate max-w-[140px] ${score.section === "Best Paper" ? "text-yellow-800" : "text-blue-800"
-                                    }`}>
-                                    {score.judge.split(' ').slice(-2).join(' ')}
-                                  </span>
-                                  <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm ${score.section === "Best Paper"
-                                    ? "bg-yellow-400 text-yellow-900"
-                                    : "bg-blue-400 text-blue-900"
-                                    }`}>
-                                    {score.section === "Best Paper" ? "BP" : "YR"}
-                                  </span>
+
+                          {Array.from(
+                            Object.values(
+                              participantScores.reduce((acc: Record<string, { judge: string; scores: typeof participantScores; remark?: string }>, s) => {
+                                const key = s.judge;
+                                if (!acc[key]) {
+                                  acc[key] = { judge: s.judge, scores: [], remark: undefined } as any;
+                                }
+                                (acc[key].scores as any).push(s);
+                                if (!acc[key].remark && s.remark) {
+                                  acc[key].remark = s.remark;
+                                }
+                                return acc;
+                              }, {} as any)
+                            )
+                          ).map((group, groupIdx) => (
+                            <div key={groupIdx} className="flex flex-col gap-1">
+                              {group.scores.map((score) => (
+                                <div
+                                  key={score.id}
+                                  className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs shadow-sm border transition-all duration-200 hover:scale-[1.02] ${score.section === "Best Paper"
+                                    ? "bg-gradient-to-r from-yellow-50 to-yellow-100/50 border-yellow-200 hover:border-yellow-400"
+                                    : "bg-gradient-to-r from-blue-50 to-blue-100/50 border-blue-200 hover:border-blue-400"
+                                    }`}
+                                >
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <span className={`font-bold truncate max-w-[140px] ${score.section === "Best Paper" ? "text-yellow-800" : "text-blue-800"
+                                      }`}>
+                                      {score.judge.split(' ').slice(-2).join(' ')}
+                                    </span>
+                                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm ${score.section === "Best Paper"
+                                      ? "bg-yellow-400 text-yellow-900"
+                                      : "bg-blue-400 text-blue-900"
+                                      }`}>
+                                      {score.section === "Best Paper" ? "BP" : "YR"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={`text-lg font-bold ${score.section === "Best Paper" ? "text-yellow-700" : "text-blue-700"
+                                      }`}>
+                                      {score.total.toFixed(1)}
+                                    </span>
+                                    <span className="text-gray-400 text-[10px] font-medium">
+                                      / {maxTotal}
+                                    </span>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-1.5">
-                                  <span className={`text-lg font-bold ${score.section === "Best Paper" ? "text-yellow-700" : "text-blue-700"
-                                    }`}>
-                                    {score.total.toFixed(1)}
-                                  </span>
-                                  <span className="text-gray-400 text-[10px] font-medium">
-                                    / {maxTotal}
-                                  </span>
-                                </div>
-                              </div>
-                              {score.remark && (
-                                <div className="ml-2 text-[10px] text-gray-600 italic bg-white/50 px-2 py-1 rounded border border-gray-100">
-                                  "{score.remark}"
+                              ))}
+
+                              {group.remark && (
+                                <div className="ml-2 text-sm text-gray-700 italic bg-white/70 px-2.5 py-1.5 rounded border border-gray-100">
+                                  "{group.remark}"
                                 </div>
                               )}
                             </div>

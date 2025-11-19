@@ -87,13 +87,21 @@ export default function ResultsPage() {
   const getRankings = (section: Section): RankingRow[] => {
     const perParticipant: Record<
       string,
-      { totalSum: number; count: number; scores: { judge: string; total: number }[] }
+      {
+        totalSum: number;
+        count: number;
+        scores: { judge: string; total: number; remark?: string }[];
+      }
     > = {};
 
     for (const record of scoreRecords) {
       if (record.section !== section) continue;
       if (!perParticipant[record.participantId]) {
-        perParticipant[record.participantId] = { totalSum: 0, count: 0, scores: [] };
+        perParticipant[record.participantId] = {
+          totalSum: 0,
+          count: 0,
+          scores: [],
+        };
       }
       perParticipant[record.participantId].totalSum += record.total;
       perParticipant[record.participantId].count += 1;
@@ -315,7 +323,7 @@ export default function ResultsPage() {
                                 {score.total.toFixed(1)} / 25
                               </div>
                               {score.remark && (
-                                <div className="mt-1 text-[10px] text-gray-600 italic bg-white/70 px-2 py-1 rounded border border-gray-100 line-clamp-3">
+                                <div className="mt-1 text-sm text-gray-700 italic bg-white/70 px-2.5 py-1.5 rounded border border-gray-100 line-clamp-3">
                                   "{score.remark}"
                                 </div>
                               )}

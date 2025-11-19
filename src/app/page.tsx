@@ -495,22 +495,16 @@ export default function HomePage() {
         {
           totalSum: number;
           count: number;
-          remark?: string;
         }
       > = {};
 
       for (const record of scoreRecords) {
         if (record.section !== section) continue;
         if (!perParticipant[record.participantId]) {
-          perParticipant[record.participantId] = { totalSum: 0, count: 0, remark: undefined };
+          perParticipant[record.participantId] = { totalSum: 0, count: 0 };
         }
         perParticipant[record.participantId].totalSum += record.total;
         perParticipant[record.participantId].count += 1;
-
-        // Capture a single remark for this participant in this section (first non-empty)
-        if (!perParticipant[record.participantId].remark && record.remark) {
-          perParticipant[record.participantId].remark = record.remark;
-        }
       }
 
       return Object.entries(perParticipant)

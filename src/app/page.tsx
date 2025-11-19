@@ -278,6 +278,21 @@ export default function HomePage() {
     setSavingBestPaper(true);
     setSavingYoungResearcher(true);
 
+    // Remove any existing scores for this judge + participant so the new submission replaces the old one
+    const { error: deleteError } = await supabase
+      .from("scores")
+      .delete()
+      .eq("participant_id", selectedParticipantId)
+      .eq("judge", selectedJudge);
+
+    if (deleteError) {
+      console.error("Error clearing previous scores for this judge and participant:", deleteError);
+      alert("Error clearing previous scores for this judge and participant. Please try again.");
+      setSavingBestPaper(false);
+      setSavingYoungResearcher(false);
+      return;
+    }
+
     // Save both scores
     const bestPaperInsert: any = {
       participant_id: selectedParticipantId,
@@ -321,7 +336,7 @@ export default function HomePage() {
       return;
     }
 
-    // Add both records to the list
+    // Add both records to the list, after removing any older ones for this judge + participant
     const newRecords: ScoreRecord[] = [];
 
     if (bestPaperData) {
@@ -350,7 +365,12 @@ export default function HomePage() {
       });
     }
 
-    setScoreRecords((prev) => [...newRecords, ...prev]);
+    setScoreRecords((prev) => {
+      const filtered = prev.filter(
+        (r) => !(r.participantId === selectedParticipantId && r.judge === selectedJudge)
+      );
+      return [...newRecords, ...filtered];
+    });
 
     // Clear all scores
     setBestPaperScores({});
@@ -361,8 +381,13 @@ export default function HomePage() {
   };
 
   const handleClearAll = async () => {
+    if (!selectedParticipantId) {
+      alert("Please select a participant whose scores you want to clear.");
+      return;
+    }
+
     // Password protection
-    const password = prompt("⚠️ Enter password to clear all scores:");
+    const password = prompt("⚠️ Enter password to clear this participant's scores:");
     if (password !== "1234") {
       if (password !== null) {
         alert("❌ Incorrect password. Access denied.");
@@ -370,10 +395,13 @@ export default function HomePage() {
       return;
     }
 
-    if (!confirm("Clear ALL scores from the online database? This cannot be undone!")) return;
+    if (!confirm(`Clear ALL scores for participant ${selectedParticipantId}? This cannot be undone!`)) return;
 
     setClearing(true);
-    const { error } = await supabase.from("scores").delete().neq("id", "");
+    const { error } = await supabase
+      .from("scores")
+      .delete()
+      .eq("participant_id", selectedParticipantId);
     setClearing(false);
 
     if (error) {
@@ -382,8 +410,8 @@ export default function HomePage() {
       return;
     }
 
-    setScoreRecords([]);
-    alert("✅ All scores have been cleared successfully.");
+    setScoreRecords((prev) => prev.filter((r) => r.participantId !== selectedParticipantId));
+    alert(`✅ All scores for participant ${selectedParticipantId} have been cleared successfully.`);
   };
 
   const handleAddParticipant = async () => {
@@ -761,7 +789,7 @@ export default function HomePage() {
             disabled={clearing}
             className="text-xs px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 text-white hover:from-red-700 hover:to-rose-700 hover:scale-105 hover:shadow-2xl transition-all duration-300 font-bold shadow-lg disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-lg disabled:cursor-not-allowed"
           >
-            {clearing ? "Clearing..." : "Clear all"}
+            {clearing ? "Clearing..." : "Clear participant scores"}
           </button>
           <button
             onClick={() => setShowAddParticipant(true)}

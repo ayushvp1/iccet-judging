@@ -490,7 +490,14 @@ export default function HomePage() {
 
     // Calculate rankings for both sections
     const calculateRankings = (section: Section) => {
-      const perParticipant: Record<string, { totalSum: number; count: number }> = {};
+      const perParticipant: Record<
+        string,
+        {
+          totalSum: number;
+          count: number;
+          remark?: string;
+        }
+      > = {};
 
       for (const record of scoreRecords) {
         if (record.section !== section) continue;
@@ -674,7 +681,6 @@ export default function HomePage() {
         {
           totalSum: number;
           count: number;
-          remark?: string;
         }
       > = {};
 
@@ -687,15 +693,14 @@ export default function HomePage() {
         perParticipant[record.participantId].count += 1;
       }
 
-      const rows: (RankingRow & { remark?: string })[] = Object.entries(perParticipant)
-        .map(([participantId, { totalSum, count, remark }]) => {
+      const rows: RankingRow[] = Object.entries(perParticipant)
+        .map(([participantId, { totalSum, count }]) => {
           const participant = participants.find((p) => p.id === participantId);
           if (!participant) return null;
           return {
             participant,
             avgScore: totalSum / count,
             judgeCount: count,
-            remark,
           };
         })
         .filter((row): row is RankingRow => row !== null)

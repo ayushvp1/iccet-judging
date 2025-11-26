@@ -50,6 +50,7 @@ const JUDGES = [
   "Dr. K. Nagaraju",
   "Dr. Premjith B",
   "Dr. Vimala Mathew",
+  "Dr. Alavikunhu Panthakkan",
 ];
 
 type Criterion = {

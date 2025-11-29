@@ -1,5 +1,5 @@
 "use client";
-
+import { Analytics } from "@vercel/analytics/next"
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
@@ -15,34 +15,32 @@ type Participant = {
   title: string;
 };
 
-const PARTICIPANTS: Participant[] = [
-  { id: "P01", name: "Akhil Sukumar P", title: "Machine Learning–Enabled Framework for Adaptive Resource Allocation in Next-Generation Wireless Networks" },
-  { id: "P02", name: "Rashmi R Nath", title: "Optimized Deep Learning with Wavelet Features for Multi-Class EEG-Based Alzheimer's Disease Detection" },
-  { id: "P03", name: "Siji R", title: "The Role of Sign Language in Inclusive Education – Challenges and Technological Intervention" },
-  { id: "P04", name: "Chaithra Dinesh", title: "Integrating computational intelligence and medical imaging for lifestyle diseases management in India" },
-  { id: "P05", name: "Muhammad Puzhakkala Veettil", title: "Deep Learning and Hybrid Cryptographic Approaches for Securing Wireless Sensor Networks: A Comprehensive" },
-  { id: "P06", name: "Sandra Kv", title: "A Literature Review on the Evolution of IoT-Enabled Smart Home Automation for Secure, Scalable, and Intelligent Environments" },
-  { id: "P07", name: "Remya K", title: "A Review on Secure Machine-to-Machine Communication in Industrial IoT: Challenges and Computational Intelligence Approaches" },
-  { id: "P08", name: "Hridya G", title: "GlaucoNet: A Novel Multi-Scale Attention Network for Robust Glaucoma Classification from Noisy Fundus Images" },
-  { id: "P09", name: "Chandni P M", title: "A Comparative Analysis of Traditional Machine Learning and Deep Learning for Early Disease Detection from Leaf Textures" },
-  { id: "P10", name: "Joshna M", title: "AI for Green 6G: A Review of Energy-Aware Routing Techniques" },
-  { id: "P11", name: "Sreelakshmi Suresh", title: "A Literature Review on the Evolution of IoT-Enabled Smart Home Automation for Secure, Scalable, and Intelligent Environments" },
-  { id: "P12", name: "Saniya Sudhan", title: "A Literature Review on the Evolution of IoT-Enabled Smart Home Automation for Secure, Scalable, and Intelligent Environments" },
-  { id: "P13", name: "Deepnitha Ramachandran", title: "A Literature Review on the Evolution of IoT-Enabled Smart Home Automation for Secure, Scalable, and Intelligent Environments" },
-  { id: "P14", name: "Veena Vijayan", title: "MULTI-OBJECTIVE DRAGONFLY OPTIMIZATION ALGORITHM (MODOA) BASED VM PLACEMENT STRATEGY TO MITIGATE CO-RESIDENT ATTACKS" },
-  { id: "P15", name: "Akshara P", title: "BFLBreacher: Exposing Privacy Vulnerabilities in Federated Learning" },
-  { id: "P16", name: "Shayana P", title: "Smart organ donation and disease management system: an explainable AI Literature Review" },
-  { id: "P17", name: "Anulal P", title: "DeepReveal: An Explainable AI Framework for Robust Deepfake Detection" },
-  { id: "P18", name: "Ayush V P", title: "YOLOv8-GSAF: Lightweight Ghost and SimAM Enhanced Road Damage Detection Framework" },
-  { id: "P19", name: "Sainadh V", title: "Traffic sign detection using yolov8" },
-  { id: "P20", name: "Govind Hans V", title: "Enhancing Prediction on Imbalanced Medical Datasets: An Evaluation of Gradient Boosting Models with the SMOTE-MRS Technique" },
-  { id: "P21", name: "Amaya M", title: "Enhancing Eye Disease Classification with Transformer-Based Vision Model" },
-  { id: "P22", name: "Asher Vargheese K", title: "Transformer-Integrated YOLO-Air with Super-Resolution Preprocessing for Enhanced Small Object Detection in UAV Imagery" },
-  { id: "P23", name: "Sourav K", title: "Hybrid Weather forecasting using Machine Learning and Traditional Forecasting techniques" },
-  { id: "P24", name: "Aravind P", title: "Stock market price prediction using LSTM and Random forest and sentimental analysis via FinBERT" },
-  { id: "P25", name: "Ashitha P Sujith", title: "ENHANCED ALZHEIMER'S DETECTION USING VISION TRANSFORMERS AND EXPLAINABLE AI TECHNIQUES ON PREPROCESSED MRI SCANS" },
-  { id: "P26", name: "Gokul Krishna A M", title: "Research Paper Title" },
-  { id: "P27", name: "Fathima Safna C P", title: "Beyond Pixels: A Multi-Sensor Fusion Approach for Intelligent Wildfire Detection Using YOLO Architectures" },
+const STATIC_PARTICIPANTS: Participant[] = [
+  { id: "P01", name: "Anulal P", title: "DeepReveal: An Explainable AI Framework for Robust Deepfake Detection" },
+  { id: "P02", name: "Muhammed Rashid", title: "Research Paper Title" },
+  { id: "P03", name: "Sainadh V", title: "Traffic sign detection using yolov8" },
+  { id: "P04", name: "Amaya M", title: "Enhancing Eye Disease Classification with Transformer-Based Vision Model" },
+  { id: "P05", name: "Ayush V P", title: "YOLOv8-GSAF: Lightweight Ghost and SimAM Enhanced Road Damage Detection Framework" },
+  { id: "P06", name: "Fathima Safna C P", title: "Beyond Pixels: A Multi-Sensor Fusion Approach for Intelligent Wildfire Detection Using YOLO Architectures" },
+  { id: "P07", name: "Ashitha P Sujith", title: "ENHANCED ALZHEIMER'S DETECTION USING VISION TRANSFORMERS AND EXPLAINABLE AI TECHNIQUES ON PREPROCESSED MRI SCANS" },
+  { id: "P08", name: "Asher Vargheese K", title: "Transformer-Integrated YOLO-Air with Super-Resolution Preprocessing for Enhanced Small Object Detection in UAV Imagery" },
+  { id: "P09", name: "Sandra KV", title: "A Literature Review on the Evolution of IoT-Enabled Smart Home Automation for Secure, Scalable, and Intelligent Environments" },
+  { id: "P10", name: "Aravind P", title: "Stock market price prediction using LSTM and Random forest and sentimental analysis via FinBERT" },
+  { id: "P11", name: "Govind Hans V", title: "Enhancing Prediction on Imbalanced Medical Datasets: An Evaluation of Gradient Boosting Models with the SMOTE-MRS Technique" },
+  { id: "P12", name: "Gokul krishna A M", title: "Research Paper Title" },
+  { id: "P13", name: "Sourav K", title: "Hybrid Weather forecasting using Machine Learning and Traditional Forecasting techniques" },
+  { id: "P14", name: "Akhil Sukumar P", title: "Machine Learning–Enabled Framework for Adaptive Resource Allocation in Next-Generation Wireless Networks" },
+  { id: "P15", name: "Rashmi R Nath", title: "Optimized Deep Learning with Wavelet Features for Multi-Class EEG-Based Alzheimer's Disease Detection" },
+  { id: "P16", name: "Siji R", title: "The Role of Sign Language in Inclusive Education – Challenges and Technological Intervention" },
+  { id: "P17", name: "Chaithra dinesh", title: "Integrating computational intelligence and medical imaging for lifestyle diseases management in India" },
+  { id: "P18", name: "Muhammed Puzhakkala Veettil", title: "Deep Learning and Hybrid Cryptographic Approaches for Securing Wireless Sensor Networks: A Comprehensive" },
+  { id: "P19", name: "Remya K", title: "A Review on Secure Machine-to-Machine Communication in Industrial IoT: Challenges and Computational Intelligence Approaches" },
+  { id: "P20", name: "Hridya G", title: "GlaucoNet: A Novel Multi-Scale Attention Network for Robust Glaucoma Classification from Noisy Fundus Images" },
+  { id: "P21", name: "Chandini P M", title: "A Comparative Analysis of Traditional Machine Learning and Deep Learning for Early Disease Detection from Leaf Textures" },
+  { id: "P22", name: "Joshna M", title: "AI for Green 6G: A Review of Energy-Aware Routing Techniques" },
+  { id: "P23", name: "Shayana P", title: "Smart organ donation and disease management system: an explainable AI Literature Review" },
+  { id: "P24", name: "Akshara P B", title: "BFLBreacher: Exposing Privacy Vulnerabilities in Federated Learning" },
+  { id: "P25", name: "Rasheed NK", title: "Research Paper Title" },
 ];
 
 const JUDGES = [
@@ -52,6 +50,7 @@ const JUDGES = [
   "Dr. K. Nagaraju",
   "Dr. Premjith B",
   "Dr. Vimala Mathew",
+  "Dr. Alavikunhu Panthakkan",
 ];
 
 type Criterion = {
@@ -138,6 +137,7 @@ type ScoreRecord = {
   section: Section;
   scores: Record<string, number>; // criterionId -> score
   total: number;
+  remark?: string;
   createdAt: string;
 };
 
@@ -146,45 +146,71 @@ export default function HomePage() {
   const [selectedParticipantId, setSelectedParticipantId] = useState<string>("");
   const [bestPaperScores, setBestPaperScores] = useState<Record<string, string>>({});
   const [youngResearcherScores, setYoungResearcherScores] = useState<Record<string, string>>({});
+  const [remark, setRemark] = useState<string>("");
   const [scoreRecords, setScoreRecords] = useState<ScoreRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [savingBestPaper, setSavingBestPaper] = useState<boolean>(false);
   const [savingYoungResearcher, setSavingYoungResearcher] = useState<boolean>(false);
   const [clearing, setClearing] = useState<boolean>(false);
+  const [showAddParticipant, setShowAddParticipant] = useState<boolean>(false);
+  const [newParticipant, setNewParticipant] = useState({ id: "", name: "", title: "" });
+  const [showEditParticipants, setShowEditParticipants] = useState<boolean>(false);
+  const [editingParticipant, setEditingParticipant] = useState<Participant | null>(null);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+
 
   const maxTotal = 25; // Each section has 5 criteria × 5 points = 25 max
 
-  // Load scores from Supabase on mount
+  // Load scores and participants from Supabase on mount
   useEffect(() => {
-    const fetchScores = async () => {
+    const fetchData = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("scores")
-        .select("*")
-        .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error loading scores:", error);
-        setLoading(false);
-        return;
-      }
+      const [scoresResult, participantsResult] = await Promise.all([
+        supabase
+          .from("scores")
+          .select("*")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("participants")
+          .select("*")
+          .order("id", { ascending: true }),
+      ]);
 
-      if (data) {
-        const mapped: ScoreRecord[] = data.map((row: any) => ({
+      if (scoresResult.error) {
+        console.error("Error loading scores:", scoresResult.error);
+      } else if (scoresResult.data) {
+        const mapped: ScoreRecord[] = scoresResult.data.map((row: any) => ({
           id: row.id,
           participantId: row.participant_id,
           judge: row.judge,
           section: row.section as Section,
           scores: row.scores || {},
           total: Number(row.total),
+          remark: row.remark || "",
           createdAt: row.created_at,
         }));
         setScoreRecords(mapped);
       }
+
+      if (participantsResult.error) {
+        console.error("Error loading participants:", participantsResult.error);
+        // Fallback to static list if DB not ready
+        setParticipants(STATIC_PARTICIPANTS);
+      } else if (participantsResult.data) {
+        setParticipants(
+          participantsResult.data.map((row: any) => ({
+            id: row.id,
+            name: row.name,
+            title: row.title,
+          }))
+        );
+      }
+
       setLoading(false);
     };
 
-    fetchScores();
+    fetchData();
   }, []);
 
   const handleScoreChange = (section: Section, criterionId: string, value: string) => {
@@ -251,28 +277,49 @@ export default function HomePage() {
     setSavingBestPaper(true);
     setSavingYoungResearcher(true);
 
+    // Remove any existing scores for this judge + participant so the new submission replaces the old one
+    const { error: deleteError } = await supabase
+      .from("scores")
+      .delete()
+      .eq("participant_id", selectedParticipantId)
+      .eq("judge", selectedJudge);
+
+    if (deleteError) {
+      console.error("Error clearing previous scores for this judge and participant:", deleteError);
+      alert("Error clearing previous scores for this judge and participant. Please try again.");
+      setSavingBestPaper(false);
+      setSavingYoungResearcher(false);
+      return;
+    }
+
     // Save both scores
+    const bestPaperInsert: any = {
+      participant_id: selectedParticipantId,
+      judge: selectedJudge,
+      section: "Best Paper",
+      scores: bestPaperNumericScores,
+      total: bestPaperTotal,
+    };
+    if (remark) bestPaperInsert.remark = remark;
+
     const { data: bestPaperData, error: bestPaperError } = await supabase
       .from("scores")
-      .insert({
-        participant_id: selectedParticipantId,
-        judge: selectedJudge,
-        section: "Best Paper",
-        scores: bestPaperNumericScores,
-        total: bestPaperTotal,
-      })
+      .insert(bestPaperInsert)
       .select("*")
       .single();
 
+    const youngResearcherInsert: any = {
+      participant_id: selectedParticipantId,
+      judge: selectedJudge,
+      section: "Young Researcher",
+      scores: youngResearcherNumericScores,
+      total: youngResearcherTotal,
+    };
+    if (remark) youngResearcherInsert.remark = remark;
+
     const { data: youngResearcherData, error: youngResearcherError } = await supabase
       .from("scores")
-      .insert({
-        participant_id: selectedParticipantId,
-        judge: selectedJudge,
-        section: "Young Researcher",
-        scores: youngResearcherNumericScores,
-        total: youngResearcherTotal,
-      })
+      .insert(youngResearcherInsert)
       .select("*")
       .single();
 
@@ -281,13 +328,16 @@ export default function HomePage() {
 
     if (bestPaperError || youngResearcherError) {
       console.error("Error saving scores:", bestPaperError, youngResearcherError);
-      alert(`Error saving scores. Please try again.`);
+      const errorMsg = bestPaperError?.message || youngResearcherError?.message || "Unknown error";
+      const errorDetails = bestPaperError?.details || youngResearcherError?.details || "";
+      console.error("Error details:", errorMsg, errorDetails);
+      alert(`Error saving scores: ${errorMsg}\n\nPlease check the console for more details.`);
       return;
     }
 
-    // Add both records to the list
+    // Add both records to the list, after removing any older ones for this judge + participant
     const newRecords: ScoreRecord[] = [];
-    
+
     if (bestPaperData) {
       newRecords.push({
         id: bestPaperData.id,
@@ -296,6 +346,7 @@ export default function HomePage() {
         section: bestPaperData.section as Section,
         scores: bestPaperData.scores || {},
         total: Number(bestPaperData.total),
+        remark: bestPaperData.remark || "",
         createdAt: bestPaperData.created_at,
       });
     }
@@ -308,22 +359,34 @@ export default function HomePage() {
         section: youngResearcherData.section as Section,
         scores: youngResearcherData.scores || {},
         total: Number(youngResearcherData.total),
+        remark: youngResearcherData.remark || "",
         createdAt: youngResearcherData.created_at,
       });
     }
 
-    setScoreRecords((prev) => [...newRecords, ...prev]);
-    
+    setScoreRecords((prev) => {
+      const filtered = prev.filter(
+        (r) => !(r.participantId === selectedParticipantId && r.judge === selectedJudge)
+      );
+      return [...newRecords, ...filtered];
+    });
+
     // Clear all scores
     setBestPaperScores({});
     setYoungResearcherScores({});
-    
+    setRemark("");
+
     alert("✅ Both scores saved successfully!");
   };
 
   const handleClearAll = async () => {
+    if (!selectedParticipantId) {
+      alert("Please select a participant whose scores you want to clear.");
+      return;
+    }
+
     // Password protection
-    const password = prompt("⚠️ Enter password to clear all scores:");
+    const password = prompt("⚠️ Enter password to clear this participant's scores:");
     if (password !== "1234") {
       if (password !== null) {
         alert("❌ Incorrect password. Access denied.");
@@ -331,10 +394,13 @@ export default function HomePage() {
       return;
     }
 
-    if (!confirm("Clear ALL scores from the online database? This cannot be undone!")) return;
-    
+    if (!confirm(`Clear ALL scores for participant ${selectedParticipantId}? This cannot be undone!`)) return;
+
     setClearing(true);
-    const { error } = await supabase.from("scores").delete().neq("id", "");
+    const { error } = await supabase
+      .from("scores")
+      .delete()
+      .eq("participant_id", selectedParticipantId);
     setClearing(false);
 
     if (error) {
@@ -343,8 +409,104 @@ export default function HomePage() {
       return;
     }
 
-    setScoreRecords([]);
-    alert("✅ All scores have been cleared successfully.");
+    setScoreRecords((prev) => prev.filter((r) => r.participantId !== selectedParticipantId));
+    alert(`✅ All scores for participant ${selectedParticipantId} have been cleared successfully.`);
+  };
+
+  const handleAddParticipant = async () => {
+    if (!newParticipant.id || !newParticipant.name || !newParticipant.title) {
+      alert("Please fill in all fields.");
+      return;
+    }
+
+    // Check if ID already exists in current list
+    if (participants.find(p => p.id === newParticipant.id)) {
+      alert("Participant ID already exists.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("participants")
+      .insert({
+        id: newParticipant.id,
+        name: newParticipant.name,
+        title: newParticipant.title,
+      });
+
+    if (error) {
+      console.error("Error adding participant:", error);
+      alert("Error adding participant. Please try again.");
+      return;
+    }
+
+    setParticipants((prev) => [...prev, { ...newParticipant }]);
+    setNewParticipant({ id: "", name: "", title: "" });
+    setShowAddParticipant(false);
+    alert(`✅ Participant ${newParticipant.id} added successfully!`);
+  };
+
+  const handleOpenEditParticipants = () => {
+    const password = prompt("⚠️ Enter password to edit participants:");
+    if (password !== "1234") {
+      if (password !== null) {
+        alert("❌ Incorrect password. Access denied.");
+      }
+      return;
+    }
+    setShowEditParticipants(true);
+  };
+
+  const handleEditParticipant = (participant: Participant) => {
+    setEditingParticipant({ ...participant });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingParticipant) return;
+
+    if (!editingParticipant.name || !editingParticipant.title) {
+      alert("Please fill in all fields.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("participants")
+      .update({
+        name: editingParticipant.name,
+        title: editingParticipant.title,
+      })
+      .eq("id", editingParticipant.id);
+
+    if (error) {
+      console.error("Error updating participant:", error);
+      alert("Error updating participant. Please try again.");
+      return;
+    }
+
+    setParticipants((prev) =>
+      prev.map((p) =>
+        p.id === editingParticipant.id ? { ...editingParticipant } : p
+      )
+    );
+    setEditingParticipant(null);
+    alert(`✅ Participant ${editingParticipant.id} updated successfully!`);
+  };
+
+  const handleDeleteParticipant = async (participantId: string) => {
+    if (!confirm(`Delete participant ${participantId}? This cannot be undone!`)) return;
+
+    const { error } = await supabase
+      .from("participants")
+      .delete()
+      .eq("id", participantId);
+
+    if (error) {
+      console.error("Error deleting participant:", error);
+      alert("Error deleting participant. Please try again.");
+      return;
+    }
+
+    setParticipants((prev) => prev.filter((p) => p.id !== participantId));
+    alert(`✅ Participant ${participantId} deleted successfully!`);
   };
 
   const handleExportXLSX = () => {
@@ -355,7 +517,13 @@ export default function HomePage() {
 
     // Calculate rankings for both sections
     const calculateRankings = (section: Section) => {
-      const perParticipant: Record<string, { totalSum: number; count: number }> = {};
+      const perParticipant: Record<
+        string,
+        {
+          totalSum: number;
+          count: number;
+        }
+      > = {};
 
       for (const record of scoreRecords) {
         if (record.section !== section) continue;
@@ -368,7 +536,7 @@ export default function HomePage() {
 
       return Object.entries(perParticipant)
         .map(([participantId, { totalSum, count }]) => {
-          const participant = PARTICIPANTS.find((p) => p.id === participantId);
+          const participant = participants.find((p) => p.id === participantId);
           if (!participant) return null;
           return {
             participant,
@@ -392,11 +560,12 @@ export default function HomePage() {
       "Section",
       ...BEST_PAPER_CRITERIA.map((c) => c.label),
       "Total Score",
+      "Remark",
       "Submitted At",
     ];
 
     const scoresRows = scoreRecords.map((record) => {
-      const participant = PARTICIPANTS.find((p) => p.id === record.participantId);
+      const participant = participants.find((p) => p.id === record.participantId);
       const criteria =
         record.section === "Best Paper"
           ? BEST_PAPER_CRITERIA
@@ -410,6 +579,7 @@ export default function HomePage() {
         record.section,
         ...criteria.map((c) => record.scores[c.id] || 0),
         record.total,
+        record.remark || "",
         new Date(record.createdAt).toLocaleString(),
       ];
     });
@@ -439,7 +609,7 @@ export default function HomePage() {
 
     // Add Rankings Section
     html += '<h2>ICCIET 2025 - FINAL RANKINGS</h2>';
-    
+
     // Best Paper Rankings
     html += '<h3>Best Paper Award - Rankings</h3>';
     html += '<table>';
@@ -477,7 +647,7 @@ export default function HomePage() {
     // Add Detailed Scores Section
     html += '<h2>DETAILED SCORES BY JUDGE</h2>';
     html += '<table>';
-    
+
     [scoresHeaders, ...scoresRows].forEach((row, idx) => {
       html += '<tr>';
       row.forEach((cell, colIdx) => {
@@ -491,13 +661,13 @@ export default function HomePage() {
           else if (colIdx === 4) className = 'section';
           else if (colIdx >= 5 && colIdx < row.length - 2) className = 'score';
           else if (colIdx === row.length - 2) className = 'total';
-          
+
           html += `<td class="${className}">${String(cell).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`;
         }
       });
       html += '</tr>';
     });
-    
+
     html += '</table>';
     html += '</body></html>';
 
@@ -529,7 +699,10 @@ export default function HomePage() {
     (["Best Paper", "Young Researcher"] as Section[]).forEach((section) => {
       const perParticipant: Record<
         string,
-        { totalSum: number; count: number }
+        {
+          totalSum: number;
+          count: number;
+        }
       > = {};
 
       for (const record of scoreRecords) {
@@ -543,7 +716,7 @@ export default function HomePage() {
 
       const rows: RankingRow[] = Object.entries(perParticipant)
         .map(([participantId, { totalSum, count }]) => {
-          const participant = PARTICIPANTS.find((p) => p.id === participantId);
+          const participant = participants.find((p) => p.id === participantId);
           if (!participant) return null;
           return {
             participant,
@@ -558,7 +731,7 @@ export default function HomePage() {
     });
 
     return result;
-  }, [scoreRecords]);
+  }, [scoreRecords, participants]);
 
   // Count distinct participants who have been scored
   const distinctParticipantsScored = useMemo(() => {
@@ -577,10 +750,10 @@ export default function HomePage() {
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-cyan-400/10 rounded-full blur-2xl"></div>
         </div>
-        
+
         {/* Glass overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-white/3 to-white/5 backdrop-blur-sm"></div>
-        
+
         {/* Content */}
         <div className="relative z-10 group">
           <h1 className="text-xl md:text-3xl font-bold tracking-tight drop-shadow-2xl transition-all duration-300 group-hover:scale-[1.02] bg-gradient-to-r from-white to-blue-50 px-5 py-3 rounded-2xl inline-block shadow-xl">
@@ -615,10 +788,234 @@ export default function HomePage() {
             disabled={clearing}
             className="text-xs px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 text-white hover:from-red-700 hover:to-rose-700 hover:scale-105 hover:shadow-2xl transition-all duration-300 font-bold shadow-lg disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-lg disabled:cursor-not-allowed"
           >
-            {clearing ? "Clearing..." : "Clear all"}
+            {clearing ? "Clearing..." : "Clear participant scores"}
+          </button>
+          <button
+            onClick={() => setShowAddParticipant(true)}
+            className="text-xs px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 hover:scale-105 hover:shadow-2xl transition-all duration-300 font-bold shadow-lg"
+          >
+            Add Participant
+          </button>
+          <button
+            onClick={handleOpenEditParticipants}
+            className="text-xs px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:from-amber-700 hover:to-orange-700 hover:scale-105 hover:shadow-2xl transition-all duration-300 font-bold shadow-lg"
+          >
+            Edit Participants
           </button>
         </div>
       </header>
+
+      {/* Add Participant Modal */}
+      {showAddParticipant && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-6 sm:p-8 relative">
+            <button
+              onClick={() => setShowAddParticipant(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold"
+            >
+              ×
+            </button>
+
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              Add New Participant
+            </h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Participant ID (e.g., P28)
+                </label>
+                <input
+                  type="text"
+                  value={newParticipant.id}
+                  onChange={(e) => setNewParticipant({ ...newParticipant, id: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="P28"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Participant Name
+                </label>
+                <input
+                  type="text"
+                  value={newParticipant.name}
+                  onChange={(e) => setNewParticipant({ ...newParticipant, name: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="John Doe"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Research Paper Title
+                </label>
+                <textarea
+                  value={newParticipant.title}
+                  onChange={(e) => setNewParticipant({ ...newParticipant, title: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[100px]"
+                  placeholder="Enter the full research paper title..."
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleAddParticipant}
+                className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 font-bold shadow-lg hover:shadow-xl transition-all"
+              >
+                Add Participant
+              </button>
+              <button
+                onClick={() => setShowAddParticipant(false)}
+                className="px-6 py-3 rounded-xl bg-gray-200 text-gray-700 hover:bg-gray-300 font-bold transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Participants Modal */}
+      {showEditParticipants && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 sm:p-8 border-b border-gray-200">
+              <button
+                onClick={() => setShowEditParticipants(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold"
+              >
+                ×
+              </button>
+
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-amber-700 to-orange-700 bg-clip-text text-transparent">
+                Edit Participants
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">Click on a participant to edit their details</p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 sm:p-8">
+              <div className="space-y-3">
+                {participants.map((participant) => (
+                  <div
+                    key={participant.id}
+                    className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-4 hover:shadow-lg transition-all"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="text-sm font-bold text-amber-700 bg-amber-100 px-3 py-1 rounded-lg">
+                            {participant.id}
+                          </span>
+                          <span className="text-base font-bold text-gray-800">
+                            {participant.name}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700">{participant.title}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEditParticipant(participant)}
+                          className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-bold text-sm transition-all"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteParticipant(participant.id)}
+                          className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 font-bold text-sm transition-all"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-6 sm:p-8 border-t border-gray-200">
+              <button
+                onClick={() => setShowEditParticipants(false)}
+                className="w-full px-6 py-3 rounded-xl bg-gray-200 text-gray-700 hover:bg-gray-300 font-bold transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Single Participant Modal */}
+      {editingParticipant && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-6 sm:p-8 relative">
+            <button
+              onClick={() => setEditingParticipant(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold"
+            >
+              ×
+            </button>
+
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-cyan-700 bg-clip-text text-transparent mb-6">
+              Edit Participant {editingParticipant.id}
+            </h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Participant ID
+                </label>
+                <input
+                  type="text"
+                  value={editingParticipant.id}
+                  disabled
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-100 text-gray-500 cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Participant Name
+                </label>
+                <input
+                  type="text"
+                  value={editingParticipant.name}
+                  onChange={(e) => setEditingParticipant({ ...editingParticipant, name: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Research Paper Title
+                </label>
+                <textarea
+                  value={editingParticipant.title}
+                  onChange={(e) => setEditingParticipant({ ...editingParticipant, title: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleSaveEdit}
+                className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 font-bold shadow-lg hover:shadow-xl transition-all"
+              >
+                Save Changes
+              </button>
+              <button
+                onClick={() => setEditingParticipant(null)}
+                className="px-6 py-3 rounded-xl bg-gray-200 text-gray-700 hover:bg-gray-300 font-bold transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 px-4 sm:px-6 lg:px-10 py-6 grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
         {/* Left: Scoring form */}
@@ -626,7 +1023,7 @@ export default function HomePage() {
           {/* Decorative blur */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-blue-400/10 via-purple-400/10 to-pink-400/10 rounded-full blur-3xl -z-10 group-hover:scale-125 transition-transform duration-700"></div>
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-cyan-400/10 to-blue-400/10 rounded-full blur-3xl -z-10 group-hover:scale-125 transition-transform duration-700"></div>
-          
+
           <div className="flex items-center gap-3 mb-5 pb-4 border-b-2 border-gradient-to-r from-blue-200 via-purple-200 to-pink-200">
             <div className="w-1 h-8 bg-gradient-to-b from-blue-600 via-purple-600 to-pink-600 rounded-full shadow-lg"></div>
             <h2 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent flex-1">
@@ -666,7 +1063,7 @@ export default function HomePage() {
                 onChange={(e) => setSelectedParticipantId(e.target.value)}
               >
                 <option value="">Select participant</option>
-                {PARTICIPANTS.map((p) => (
+                {participants.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.id} – {p.name}
                   </option>
@@ -679,7 +1076,7 @@ export default function HomePage() {
           {selectedParticipantId && (
             <div className="mb-6 text-sm bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 border-2 border-blue-200/60 rounded-2xl px-5 py-4 shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 backdrop-blur-sm">
               {(() => {
-                const p = PARTICIPANTS.find(
+                const p = participants.find(
                   (x) => x.id === selectedParticipantId
                 );
                 if (!p) return null;
@@ -717,18 +1114,17 @@ export default function HomePage() {
                         {c.description}
                       </div>
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-1.5 mt-1">
                       {[1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0].map((score) => (
                         <button
                           key={score}
                           type="button"
                           onClick={() => handleScoreChange("Best Paper", c.id, score.toString())}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all duration-200 ${
-                            numValue === score
-                              ? "bg-yellow-600 text-white shadow-lg scale-110"
-                              : "bg-white text-gray-700 hover:bg-yellow-600 hover:text-white hover:scale-105"
-                          }`}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all duration-200 ${numValue === score
+                            ? "bg-yellow-600 text-white shadow-lg scale-110"
+                            : "bg-white text-gray-700 hover:bg-yellow-600 hover:text-white hover:scale-105"
+                            }`}
                         >
                           {score.toFixed(1)}
                         </button>
@@ -741,7 +1137,7 @@ export default function HomePage() {
                         Clear
                       </button>
                     </div>
-                    
+
                     <div className="text-right">
                       <span className="text-xs font-bold text-yellow-800">
                         Selected: {value || "0"} / {c.max}
@@ -777,18 +1173,17 @@ export default function HomePage() {
                         {c.description}
                       </div>
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-1.5 mt-1">
                       {[1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0].map((score) => (
                         <button
                           key={score}
                           type="button"
                           onClick={() => handleScoreChange("Young Researcher", c.id, score.toString())}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all duration-200 ${
-                            numValue === score
-                              ? "bg-blue-600 text-white shadow-lg scale-110"
-                              : "bg-white text-gray-700 hover:bg-blue-600 hover:text-white hover:scale-105"
-                          }`}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all duration-200 ${numValue === score
+                            ? "bg-blue-600 text-white shadow-lg scale-110"
+                            : "bg-white text-gray-700 hover:bg-blue-600 hover:text-white hover:scale-105"
+                            }`}
                         >
                           {score.toFixed(1)}
                         </button>
@@ -801,7 +1196,7 @@ export default function HomePage() {
                         Clear
                       </button>
                     </div>
-                    
+
                     <div className="text-right">
                       <span className="text-xs font-bold text-blue-800">
                         Selected: {value || "0"} / {c.max}
@@ -812,6 +1207,21 @@ export default function HomePage() {
               })}
             </div>
           </div>
+
+          {/* Remarks Section - TEMPORARILY DISABLED */}
+          {/* Uncomment after running: ALTER TABLE scores ADD COLUMN IF NOT EXISTS remark TEXT; */}
+          {<div className="mb-6">
+            <div className="flex items-center gap-2 mb-3 pb-2 border-b-2 border-purple-400">
+              <div className="w-1 h-5 bg-purple-400 rounded-full"></div>
+              <h3 className="text-md font-bold text-purple-700">Remarks (Optional)</h3>
+            </div>
+            <textarea
+              value={remark}
+              onChange={(e) => setRemark(e.target.value)}
+              className="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[80px] text-sm"
+              placeholder="Enter any additional comments or feedback..."
+            />
+          </div>}
 
           {/* Single Save Button for Both Sections */}
           <div className="mt-8 pt-6 border-t-2 border-gradient-to-r from-blue-200 via-purple-200 to-pink-200">
@@ -842,7 +1252,7 @@ export default function HomePage() {
             <div className="absolute top-0 left-0 w-72 h-72 bg-gradient-to-br from-blue-300/20 via-cyan-300/15 to-slate-300/20 rounded-full blur-3xl -z-10 group-hover:scale-125 transition-transform duration-700 animate-pulse"></div>
             <div className="absolute bottom-0 right-0 w-64 h-64 bg-gradient-to-tl from-cyan-300/15 via-blue-300/10 to-slate-300/15 rounded-full blur-3xl -z-10 group-hover:scale-125 transition-transform duration-700 animate-pulse" style={{ animationDelay: '1s' }}></div>
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-blue-200/10 to-cyan-200/10 rounded-full blur-3xl -z-10"></div>
-            
+
             <div className="flex items-center gap-3 mb-4 pb-4 border-b-2 border-gradient-to-r from-blue-200 to-cyan-200">
               <div className="w-1 h-8 bg-gradient-to-b from-blue-600 to-cyan-600 rounded-full shadow-lg"></div>
               <h2 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-cyan-700 bg-clip-text text-transparent flex-1">
@@ -868,21 +1278,21 @@ export default function HomePage() {
               </div>
             ) : (
               <div className="max-h-[calc(100vh-250px)] overflow-y-auto space-y-3 pr-2 custom-scrollbar">
-                {PARTICIPANTS.map((participant) => {
+                {participants.map((participant) => {
                   const participantScores = scoreRecords.filter(
                     (r) => r.participantId === participant.id
                   );
-                  
+
                   if (participantScores.length === 0) return null;
 
                   // Calculate separate averages for each section
                   const bestPaperScores = participantScores.filter(s => s.section === "Best Paper");
                   const youngResearcherScores = participantScores.filter(s => s.section === "Young Researcher");
-                  
+
                   const bestPaperAvg = bestPaperScores.length > 0
                     ? bestPaperScores.reduce((sum, r) => sum + r.total, 0) / bestPaperScores.length
                     : 0;
-                  
+
                   const youngResearcherAvg = youngResearcherScores.length > 0
                     ? youngResearcherScores.reduce((sum, r) => sum + r.total, 0) / youngResearcherScores.length
                     : 0;
@@ -895,7 +1305,7 @@ export default function HomePage() {
                       {/* Decorative gradient overlays */}
                       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/25 via-cyan-400/20 to-slate-400/25 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                       <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-cyan-400/20 to-blue-400/15 rounded-full blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
-                      
+
                       <div className="relative z-10">
                         <div className="flex items-start justify-between gap-3 mb-3">
                           <div className="flex-1">
@@ -940,39 +1350,60 @@ export default function HomePage() {
                           <div className="text-[10px] uppercase tracking-wider text-blue-600 font-bold mb-2">
                             Judge Scores ({participantScores.length})
                           </div>
-                          {participantScores.map((score) => (
-                            <div
-                              key={score.id}
-                              className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs shadow-sm border transition-all duration-200 hover:scale-[1.02] ${
-                                score.section === "Best Paper"
-                                  ? "bg-gradient-to-r from-yellow-50 to-yellow-100/50 border-yellow-200 hover:border-yellow-400"
-                                  : "bg-gradient-to-r from-blue-50 to-blue-100/50 border-blue-200 hover:border-blue-400"
-                              }`}
-                            >
-                              <div className="flex items-center gap-2 flex-1">
-                                <span className={`font-bold truncate max-w-[140px] ${
-                                  score.section === "Best Paper" ? "text-yellow-800" : "text-blue-800"
-                                }`}>
-                                  {score.judge.split(' ').slice(-2).join(' ')}
-                                </span>
-                                <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm ${
-                                  score.section === "Best Paper" 
-                                    ? "bg-yellow-400 text-yellow-900" 
-                                    : "bg-blue-400 text-blue-900"
-                                }`}>
-                                  {score.section === "Best Paper" ? "BP" : "YR"}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <span className={`text-lg font-bold ${
-                                  score.section === "Best Paper" ? "text-yellow-700" : "text-blue-700"
-                                }`}>
-                                  {score.total.toFixed(1)}
-                                </span>
-                                <span className="text-gray-400 text-[10px] font-medium">
-                                  / {maxTotal}
-                                </span>
-                              </div>
+
+                          {Array.from(
+                            Object.values(
+                              participantScores.reduce((acc: Record<string, { judge: string; scores: typeof participantScores; remark?: string }>, s) => {
+                                const key = s.judge;
+                                if (!acc[key]) {
+                                  acc[key] = { judge: s.judge, scores: [], remark: undefined } as any;
+                                }
+                                (acc[key].scores as any).push(s);
+                                if (!acc[key].remark && s.remark) {
+                                  acc[key].remark = s.remark;
+                                }
+                                return acc;
+                              }, {} as any)
+                            )
+                          ).map((group, groupIdx) => (
+                            <div key={groupIdx} className="flex flex-col gap-1">
+                              {group.scores.map((score) => (
+                                <div
+                                  key={score.id}
+                                  className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs shadow-sm border transition-all duration-200 hover:scale-[1.02] ${score.section === "Best Paper"
+                                    ? "bg-gradient-to-r from-yellow-50 to-yellow-100/50 border-yellow-200 hover:border-yellow-400"
+                                    : "bg-gradient-to-r from-blue-50 to-blue-100/50 border-blue-200 hover:border-blue-400"
+                                    }`}
+                                >
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <span className={`font-bold truncate max-w-[140px] ${score.section === "Best Paper" ? "text-yellow-800" : "text-blue-800"
+                                      }`}>
+                                      {score.judge.split(' ').slice(-2).join(' ')}
+                                    </span>
+                                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm ${score.section === "Best Paper"
+                                      ? "bg-yellow-400 text-yellow-900"
+                                      : "bg-blue-400 text-blue-900"
+                                      }`}>
+                                      {score.section === "Best Paper" ? "BP" : "YR"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={`text-lg font-bold ${score.section === "Best Paper" ? "text-yellow-700" : "text-blue-700"
+                                      }`}>
+                                      {score.total.toFixed(1)}
+                                    </span>
+                                    <span className="text-gray-400 text-[10px] font-medium">
+                                      / {maxTotal}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+
+                              {group.remark && (
+                                <div className="ml-2 text-sm text-gray-700 italic bg-white/70 px-2.5 py-1.5 rounded border border-gray-100">
+                                  "{group.remark}"
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
